@@ -1,360 +1,277 @@
-# Booking Master - WordPress Multivendor Booking Plugin
+# Booking Master - Advanced WordPress Multivendor Booking Plugin
 
-A comprehensive WordPress booking plugin similar to Amelia, designed for multivendor environments where mentors can create services and mentees can book appointments with integrated Zoom functionality.
+A comprehensive WordPress plugin for managing multivendor booking services with mentor/mentee relationships, similar to Amelia but with advanced features.
 
 ## Features
 
-### 🎯 Core Functionality
-- **Multivendor System**: Separate roles for mentors and mentees
-- **Service Management**: Mentors can create and manage their own services
-- **Booking System**: Complete booking workflow with status management
-- **Zoom Integration**: Automated Zoom meeting creation for online sessions
-- **Role-based Access Control**: Granular permissions for different user types
+### Core Functionality
+- **Multivendor System**: Complete mentor/mentee role management
+- **Service Management**: Mentors can create and manage services with pricing and duration
+- **Booking System**: Full booking workflow with status management
+- **Zoom Integration**: Individual mentor Zoom accounts with meeting creation
+- **Admin Dashboard**: Comprehensive admin interface for managing all aspects
 
-### 🔧 Technical Features
-- **Object-Oriented Design**: Clean, maintainable PHP code structure
-- **WordPress Best Practices**: Follows WordPress coding standards and security practices
-- **AJAX-Powered Interface**: Smooth user experience without page reloads
-- **Responsive Design**: Mobile-friendly frontend and admin interfaces
-- **Database Optimization**: Efficient database structure with proper indexing
+### Payment Processing
+- **Stripe Integration**: Complete payment processing with webhooks
+- **PayPal Integration**: PayPal checkout and payment verification
+- **Payment Management**: Transaction tracking, refunds, and payment history
+- **Multiple Payment Methods**: Support for both credit cards and PayPal
+- **Refund System**: Automated refund processing through payment gateways
 
-### 📊 Admin Features
-- **Comprehensive Dashboard**: Overview of bookings, services, and revenue
-- **User Management**: Assign roles and manage mentor/mentee accounts
-- **Booking Management**: View and manage all bookings across the platform
-- **Settings Panel**: Configure currencies, time slots, and Zoom integration
-- **Reporting**: Built-in analytics and reporting features
+### Email Notifications
+- **Automated Emails**: Booking confirmations, reminders, and cancellations
+- **Email Templates**: Customizable email templates for all notification types
+- **Scheduled Emails**: 24-hour and 1-hour reminder emails
+- **Follow-up Emails**: Post-session feedback requests
+- **Email Logs**: Complete email delivery tracking and troubleshooting
+- **Test Email System**: Test email functionality with sample data
 
-### 👥 User Roles
+### Advanced Availability Management
+- **Time Slot Management**: Mentors can enable/disable specific time slots
+- **Bulk Availability**: Mass update availability for multiple days
+- **Working Hours**: Set default working hours for each day of the week
+- **Time Off**: Schedule time off periods with automatic slot blocking
+- **Calendar View**: Month view of availability status
+- **Copy Availability**: Copy availability patterns from one day/week to another
 
-#### Mentors
-- Create and manage services (name, pricing, duration)
-- View and manage their bookings
-- Connect individual Zoom accounts
-- Set availability schedules
-- Approve or reject booking requests
+### Calendar Synchronization
+- **Google Calendar**: Two-way sync with Google Calendar
+- **Outlook Calendar**: Two-way sync with Microsoft Outlook
+- **Event Management**: Automatic event creation, updates, and deletions
+- **Conflict Prevention**: Import external calendar events to block time slots
+- **OAuth2 Integration**: Secure authentication with calendar providers
 
-#### Mentees
-- Browse available services
-- Book appointments with mentors
-- View their booking history
-- Join Zoom meetings for confirmed bookings
-- Cancel bookings (with restrictions)
+### Reporting & Analytics
+- **Comprehensive Reports**: Bookings, revenue, mentors, services, and cancellations
+- **Interactive Charts**: Revenue charts and booking trend analysis
+- **Export Functionality**: CSV and PDF export options
+- **Dashboard Statistics**: Real-time metrics and KPIs
+- **Date Range Filtering**: Custom date ranges for detailed analysis
+- **Mentor-specific Reports**: Individual performance tracking
 
-#### Administrators
-- Full access to all plugin features
-- Configure global settings
-- Manage user roles
-- View system-wide analytics
-- Configure Zoom marketplace integration
+### User Management
+- **Role-based Access**: Custom capabilities for mentors and mentees
+- **User Dashboards**: Separate dashboards for different user types
+- **Registration System**: Mentor application process
+- **Permission Management**: Granular access control
+
+### Additional Features
+- **Responsive Design**: Mobile-friendly interface
+- **Shortcode System**: Easy frontend integration
+- **Multi-language Support**: Translation-ready
+- **Security Features**: Nonce verification, sanitization, and validation
+- **Database Optimization**: Efficient database schema with proper indexing
 
 ## Installation
 
-1. **Upload the Plugin**
-   ```
-   Upload the `booking-master` folder to `/wp-content/plugins/`
-   ```
+1. Upload the plugin files to `/wp-content/plugins/booking-master/`
+2. Activate the plugin through the 'Plugins' menu in WordPress
+3. Configure settings in the Booking Master admin panel
 
-2. **Activate the Plugin**
-   - Go to WordPress Admin → Plugins
-   - Find "Booking Master" and click "Activate"
+## Database Tables
 
-3. **Initial Setup**
-   - Navigate to Booking Master → Settings
-   - Configure your currency and basic settings
-   - Set up Zoom integration (optional)
+The plugin creates the following custom tables:
+
+- `wp_bm_services` - Service information
+- `wp_bm_bookings` - Booking records with payment details
+- `wp_bm_mentor_settings` - Mentor-specific settings
+- `wp_bm_mentor_availability` - Time slot availability
+- `wp_bm_mentor_time_off` - Scheduled time off periods
+- `wp_bm_calendar_events` - External calendar events
+- `wp_bm_email_log` - Email delivery logs
+- `wp_bm_payment_transactions` - Payment transaction records
 
 ## Configuration
 
-### Basic Settings
-1. **Currency**: Set your preferred currency (USD, EUR, GBP, etc.)
-2. **Time Slots**: Configure time slot duration (15, 30, or 60 minutes)
-3. **Buffer Time**: Set minimum booking advance time
-4. **Auto-approval**: Choose whether bookings need manual approval
+### Payment Gateway Setup
+
+#### Stripe Configuration
+1. Go to Booking Master > Payments > Settings
+2. Enable Stripe payments
+3. Add your Stripe publishable and secret keys
+4. Configure webhook endpoints
+
+#### PayPal Configuration
+1. Go to Booking Master > Payments > Settings
+2. Enable PayPal payments
+3. Add your PayPal client ID and secret
+4. Configure sandbox mode for testing
+
+### Email Configuration
+1. Go to Booking Master > Email Management > Settings
+2. Configure from name and email address
+3. Enable desired email types
+4. Customize email templates
+
+### Calendar Sync Setup
+
+#### Google Calendar
+1. Create a Google Cloud project
+2. Enable Calendar API
+3. Create OAuth2 credentials
+4. Add credentials to plugin settings
+
+#### Outlook Calendar
+1. Register app in Microsoft Azure
+2. Configure calendar permissions
+3. Add client ID and secret to plugin settings
 
 ### Zoom Integration
-1. **Create Zoom App**: Visit [Zoom Marketplace](https://marketplace.zoom.us/)
-2. **Get Credentials**: Obtain your API Key and Secret
-3. **Configure Plugin**: Enter credentials in Booking Master → Settings
-4. **Mentor Setup**: Each mentor connects their individual Zoom account
-
-## Usage
-
-### For Administrators
-
-#### Setting Up User Roles
-```php
-// Assign mentor role
-$user = new WP_User($user_id);
-$user->set_role('mentor');
-
-// Assign mentee role  
-$user = new WP_User($user_id);
-$user->set_role('mentee');
-```
-
-#### Managing Services
-- Go to Booking Master → All Services
-- View, edit, or delete services created by mentors
-- Monitor service performance and popularity
-
-#### Managing Bookings
-- Access Booking Master → All Bookings
-- Update booking statuses
-- View booking details and communication
-
-### For Mentors
-
-#### Creating Services
-1. Navigate to Booking Master → Mentor Dashboard
-2. Click "Add New Service"
-3. Fill in service details:
-   - Service name and description
-   - Price and duration
-   - Enable Zoom if needed
-4. Save the service
-
-#### Managing Bookings
-1. View pending bookings in your dashboard
-2. Approve or reject booking requests
-3. Zoom meetings are automatically created upon approval
-4. Communicate with mentees through the system
-
-### For Mentees
-
-#### Booking Services
-1. Browse available services
-2. Select a service and click "Book Now"
-3. Choose date and time slot
-4. Add any special notes
-5. Submit booking request
-
-#### Managing Bookings
-1. View your bookings in the user dashboard
-2. Join Zoom meetings when available
-3. Cancel bookings (if allowed)
-4. View booking history
+1. Create a Zoom Marketplace app
+2. Configure OAuth2 credentials
+3. Add credentials to plugin settings
+4. Mentors connect individual accounts
 
 ## Shortcodes
 
 ### Service Display
-```php
-// Display all services
-[booking_master_services]
-
-// Display services by specific mentor
-[booking_master_services mentor_id="123"]
-
-// Limit number of services shown
-[booking_master_services limit="6"]
 ```
+[booking_master_services]
+```
+Display all available services in a grid layout.
 
-### Booking Forms
-```php
-// Booking form for specific service
+### Booking Form
+```
 [booking_master_booking_form service_id="123"]
 ```
+Display booking form for a specific service.
 
-### User Dashboards
-```php
-// Universal user dashboard (shows appropriate content based on role)
+### User Dashboard
+```
 [booking_master_user_dashboard]
+```
+Display role-based dashboard for logged-in users.
 
-// Mentor application form
+### Mentor Application
+```
 [booking_master_mentor_application]
 ```
+Display mentor application form.
 
-## Database Schema
+## Admin Menu Structure
 
-### Services Table (`wp_bm_services`)
-- `id`: Primary key
-- `mentor_id`: WordPress user ID of the mentor
-- `service_name`: Name of the service
-- `description`: Service description
-- `price`: Service price
-- `duration`: Duration in minutes
-- `zoom_enabled`: Whether Zoom is enabled for this service
-- `status`: Service status (active/inactive)
-- `created_at`, `updated_at`: Timestamps
+- **Dashboard**: Overview statistics and recent activity
+- **All Services**: Manage all services across mentors
+- **All Bookings**: View and manage all bookings
+- **Reports**: Analytics and reporting tools
+- **Payments**: Payment transactions and refunds
+- **Email Management**: Email templates and logs
+- **Users & Roles**: User management and role assignment
+- **Settings**: Plugin configuration options
 
-### Bookings Table (`wp_bm_bookings`)
-- `id`: Primary key
-- `service_id`: Foreign key to services table
-- `mentee_id`: WordPress user ID of the mentee
-- `mentor_id`: WordPress user ID of the mentor
-- `booking_date`: Date and time of the appointment
-- `status`: Booking status (pending/confirmed/cancelled/completed)
-- `zoom_meeting_id`: Zoom meeting ID
-- `zoom_join_url`: Zoom join URL
-- `zoom_start_url`: Zoom start URL (for mentors)
-- `total_amount`: Total booking amount
-- `notes`: Additional notes
-- `created_at`, `updated_at`: Timestamps
+## User Roles & Capabilities
 
-### Mentor Settings Table (`wp_bm_mentor_settings`)
-- `id`: Primary key
-- `mentor_id`: WordPress user ID
-- `zoom_access_token`: Zoom OAuth access token
-- `zoom_refresh_token`: Zoom OAuth refresh token
-- `zoom_expires_at`: Token expiration time
-- `availability`: JSON-encoded availability schedule
-- `created_at`, `updated_at`: Timestamps
+### Mentor Role
+- `bm_manage_services` - Create and manage services
+- `bm_view_bookings` - View their bookings
+- `bm_manage_zoom` - Manage Zoom settings
+- `bm_manage_availability` - Manage availability
 
-## API Reference
+### Mentee Role
+- `bm_book_services` - Book services
+- `bm_view_own_bookings` - View their own bookings
 
-### Core Classes
+### Administrator
+- All mentor and mentee capabilities
+- `bm_manage_all_services` - Manage all services
+- `bm_manage_all_bookings` - Manage all bookings
+- `bm_view_reports` - Access reporting features
 
-#### `Booking_Master_Services`
-```php
-// Create a service
-$services = new Booking_Master_Services();
-$service_id = $services->create_service($service_data);
+## API Endpoints
 
-// Get services by mentor
-$services = $services->get_services_by_mentor($mentor_id);
+The plugin includes AJAX endpoints for:
+- Service management
+- Booking operations
+- Payment processing
+- Availability management
+- Calendar synchronization
+- Email operations
+- Report generation
 
-// Update service
-$services->update_service($service_id, $update_data);
-```
+## Security Features
 
-#### `Booking_Master_Bookings`
-```php
-// Create a booking
-$bookings = new Booking_Master_Bookings();
-$booking_id = $bookings->create_booking($booking_data);
+- CSRF protection with nonce verification
+- User capability checks
+- Data sanitization and validation
+- SQL injection prevention
+- XSS protection
+- Secure payment processing
 
-// Check slot availability
-$available = $bookings->is_slot_available($service_id, $datetime);
+## Performance Optimizations
 
-// Get available slots
-$slots = $bookings->get_available_slots($service_id, $date);
-```
-
-#### `Booking_Master_Zoom_Integration`
-```php
-// Create Zoom meeting
-$zoom = new Booking_Master_Zoom_Integration();
-$meeting = $zoom->create_meeting($booking_object);
-
-// Check connection status
-$status = $zoom->get_connection_status($mentor_id);
-```
-
-### AJAX Actions
-
-#### Frontend Actions
-- `bm_create_booking`: Create a new booking
-- `bm_get_available_slots`: Get available time slots
-- `bm_cancel_booking`: Cancel a booking
-- `bm_connect_zoom`: Connect Zoom account
-- `bm_disconnect_zoom`: Disconnect Zoom account
-
-#### Admin Actions
-- `bm_create_service`: Create a new service
-- `bm_update_service`: Update an existing service
-- `bm_delete_service`: Delete a service
-- `bm_update_booking_status`: Update booking status
-- `bm_assign_mentor_role`: Assign mentor role to user
-- `bm_assign_mentee_role`: Assign mentee role to user
+- Efficient database queries with proper indexing
+- Caching for frequently accessed data
+- Optimized AJAX operations
+- Lazy loading for large datasets
+- Background processing for email sending
 
 ## Customization
 
-### Hooks and Filters
+### Hooks & Filters
+The plugin provides numerous hooks for customization:
+- `bm_booking_created` - Triggered when booking is created
+- `bm_booking_status_changed` - Triggered when booking status changes
+- `bm_payment_completed` - Triggered when payment is successful
+- `bm_service_created` - Triggered when service is created
 
-#### Action Hooks
-```php
-// After booking creation
-do_action('booking_master_booking_created', $booking_id, $booking_data);
+### CSS Classes
+All frontend elements use prefixed CSS classes for easy styling:
+- `.bm-service-card` - Service display cards
+- `.bm-booking-form` - Booking form container
+- `.bm-dashboard` - Dashboard elements
+- `.bm-calendar` - Calendar components
 
-// After booking status change
-do_action('booking_master_booking_status_changed', $booking_id, $old_status, $new_status);
-
-// After service creation
-do_action('booking_master_service_created', $service_id, $service_data);
-```
-
-#### Filter Hooks
-```php
-// Modify available time slots
-$slots = apply_filters('booking_master_available_slots', $slots, $service_id, $date);
-
-// Modify booking confirmation email
-$message = apply_filters('booking_master_booking_email', $message, $booking_id);
-
-// Modify service display
-$html = apply_filters('booking_master_service_html', $html, $service);
-```
-
-### Custom Styling
-Add custom CSS to override default styles:
-
-```css
-/* Custom service card styling */
-.bm-services-list .service-card {
-    background: #your-color;
-    border: 2px solid #your-border-color;
-}
-
-/* Custom button styling */
-.btn.btn-primary {
-    background: #your-primary-color;
-}
-```
-
-## Requirements
-
-- **WordPress**: 5.0 or higher
-- **PHP**: 7.4 or higher
-- **MySQL**: 5.6 or higher
-- **jQuery**: Included with WordPress
-
-### Recommended
-- **SSL Certificate**: Required for Zoom integration
-- **Modern Browser**: For optimal admin experience
-- **Caching Plugin**: For better performance
-
-## Support
-
-### Documentation
-- Plugin settings include built-in help text
-- Shortcode reference available in admin
-- Database schema documented in code
+## Troubleshooting
 
 ### Common Issues
 
-#### Zoom Integration Not Working
-1. Verify API credentials are correct
-2. Ensure SSL is enabled on your site
-3. Check Zoom app permissions
+1. **Payment Gateway Errors**
+   - Check API credentials
+   - Verify webhook configurations
+   - Review payment gateway logs
 
-#### Bookings Not Saving
-1. Check database table creation
-2. Verify user permissions
-3. Check for JavaScript errors
+2. **Email Delivery Issues**
+   - Check SMTP settings
+   - Review email logs
+   - Test with different email providers
 
-#### Time Slots Not Loading
-1. Ensure AJAX is working properly
-2. Check service availability settings
-3. Verify mentor has connected Zoom (if required)
+3. **Calendar Sync Problems**
+   - Verify OAuth2 credentials
+   - Check calendar permissions
+   - Review sync logs
 
-## Changelog
+4. **Availability Issues**
+   - Check time zone settings
+   - Verify working hours configuration
+   - Review availability rules
 
-### Version 1.0.0
-- Initial release
-- Core booking functionality
-- Zoom integration
-- User role management
-- Admin dashboard
-- Frontend shortcodes
+### Debug Mode
+Enable WordPress debug mode to see detailed error messages:
+```
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+```
+
+## Support
+
+For support and feature requests, please contact the plugin developer or submit issues through the appropriate channels.
 
 ## License
 
 This plugin is licensed under the GPL v2 or later.
 
+## Changelog
+
+### Version 1.0.0
+- Initial release with complete multivendor booking system
+- Payment gateway integration (Stripe, PayPal)
+- Email notification system
+- Advanced availability management
+- Calendar synchronization
+- Comprehensive reporting
+- Zoom integration
+- User role management
+
 ## Credits
 
-Developed with ❤️ using WordPress best practices and modern PHP techniques.
-
----
-
-**Note**: This plugin is designed to be a comprehensive booking solution. For specific customization needs, consider hiring a WordPress developer familiar with the plugin's architecture.
+Developed as a comprehensive booking solution for WordPress with enterprise-level features and security.

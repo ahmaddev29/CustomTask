@@ -129,6 +129,36 @@ class Booking_Master_Admin {
             array( $this, 'display_bookings_page' )
         );
 
+        // Reports submenu
+        add_submenu_page(
+            'booking-master',
+            'Reports & Analytics',
+            'Reports',
+            'manage_options',
+            'booking-master-reports',
+            array( $this, 'display_reports_page' )
+        );
+
+        // Payments submenu
+        add_submenu_page(
+            'booking-master',
+            'Payments & Transactions',
+            'Payments',
+            'manage_options',
+            'booking-master-payments',
+            array( $this, 'display_payments_page' )
+        );
+
+        // Email Management submenu
+        add_submenu_page(
+            'booking-master',
+            'Email Management',
+            'Email Management',
+            'manage_options',
+            'booking-master-emails',
+            array( $this, 'display_emails_page' )
+        );
+
         // Users submenu
         add_submenu_page(
             'booking-master',
@@ -243,6 +273,33 @@ class Booking_Master_Admin {
     }
 
     /**
+     * Display reports page
+     *
+     * @since    1.0.0
+     */
+    public function display_reports_page() {
+        include_once plugin_dir_path( __FILE__ ) . 'partials/reports-page.php';
+    }
+
+    /**
+     * Display payments page
+     *
+     * @since    1.0.0
+     */
+    public function display_payments_page() {
+        include_once plugin_dir_path( __FILE__ ) . 'partials/payments-page.php';
+    }
+
+    /**
+     * Display emails page
+     *
+     * @since    1.0.0
+     */
+    public function display_emails_page() {
+        include_once plugin_dir_path( __FILE__ ) . 'partials/emails-page.php';
+    }
+
+    /**
      * Save plugin settings
      *
      * @since    1.0.0
@@ -250,16 +307,61 @@ class Booking_Master_Admin {
     private function save_settings() {
         $settings = get_option( 'booking_master_settings', array() );
         
-        // Update settings with form data
+        // Basic settings
         $settings['currency'] = sanitize_text_field( $_POST['currency'] );
         $settings['currency_symbol'] = sanitize_text_field( $_POST['currency_symbol'] );
         $settings['time_slot_duration'] = intval( $_POST['time_slot_duration'] );
         $settings['booking_buffer_time'] = intval( $_POST['booking_buffer_time'] );
+        $settings['booking_lead_time'] = intval( $_POST['booking_lead_time'] );
+        $settings['max_advance_booking'] = intval( $_POST['max_advance_booking'] );
+        
+        // Zoom settings
         $settings['zoom_enabled'] = isset( $_POST['zoom_enabled'] ) ? true : false;
         $settings['zoom_api_key'] = sanitize_text_field( $_POST['zoom_api_key'] );
         $settings['zoom_api_secret'] = sanitize_text_field( $_POST['zoom_api_secret'] );
-        $settings['auto_approve_bookings'] = isset( $_POST['auto_approve_bookings'] ) ? true : false;
+        $settings['zoom_oauth_client_id'] = sanitize_text_field( $_POST['zoom_oauth_client_id'] );
+        $settings['zoom_oauth_client_secret'] = sanitize_text_field( $_POST['zoom_oauth_client_secret'] );
+        
+        // Payment settings
+        $settings['payment_enabled'] = isset( $_POST['payment_enabled'] ) ? true : false;
+        $settings['stripe_enabled'] = isset( $_POST['stripe_enabled'] ) ? true : false;
+        $settings['stripe_publishable_key'] = sanitize_text_field( $_POST['stripe_publishable_key'] );
+        $settings['stripe_secret_key'] = sanitize_text_field( $_POST['stripe_secret_key'] );
+        $settings['paypal_enabled'] = isset( $_POST['paypal_enabled'] ) ? true : false;
+        $settings['paypal_client_id'] = sanitize_text_field( $_POST['paypal_client_id'] );
+        $settings['paypal_client_secret'] = sanitize_text_field( $_POST['paypal_client_secret'] );
+        $settings['paypal_sandbox'] = isset( $_POST['paypal_sandbox'] ) ? true : false;
+        
+        // Email settings
         $settings['email_notifications'] = isset( $_POST['email_notifications'] ) ? true : false;
+        $settings['booking_confirmation_email'] = isset( $_POST['booking_confirmation_email'] ) ? true : false;
+        $settings['booking_reminder_email'] = isset( $_POST['booking_reminder_email'] ) ? true : false;
+        $settings['booking_cancellation_email'] = isset( $_POST['booking_cancellation_email'] ) ? true : false;
+        $settings['payment_confirmation_email'] = isset( $_POST['payment_confirmation_email'] ) ? true : false;
+        $settings['reminder_24h_enabled'] = isset( $_POST['reminder_24h_enabled'] ) ? true : false;
+        $settings['reminder_1h_enabled'] = isset( $_POST['reminder_1h_enabled'] ) ? true : false;
+        $settings['follow_up_email_enabled'] = isset( $_POST['follow_up_email_enabled'] ) ? true : false;
+        
+        // Calendar sync settings
+        $settings['calendar_sync_enabled'] = isset( $_POST['calendar_sync_enabled'] ) ? true : false;
+        $settings['google_calendar_enabled'] = isset( $_POST['google_calendar_enabled'] ) ? true : false;
+        $settings['google_client_id'] = sanitize_text_field( $_POST['google_client_id'] );
+        $settings['google_client_secret'] = sanitize_text_field( $_POST['google_client_secret'] );
+        $settings['outlook_calendar_enabled'] = isset( $_POST['outlook_calendar_enabled'] ) ? true : false;
+        $settings['outlook_client_id'] = sanitize_text_field( $_POST['outlook_client_id'] );
+        $settings['outlook_client_secret'] = sanitize_text_field( $_POST['outlook_client_secret'] );
+        
+        // Booking settings
+        $settings['auto_approve_bookings'] = isset( $_POST['auto_approve_bookings'] ) ? true : false;
+        $settings['require_payment_for_booking'] = isset( $_POST['require_payment_for_booking'] ) ? true : false;
+        $settings['cancellation_policy'] = sanitize_text_field( $_POST['cancellation_policy'] );
+        $settings['cancellation_hours'] = intval( $_POST['cancellation_hours'] );
+        $settings['refund_policy'] = sanitize_text_field( $_POST['refund_policy'] );
+        
+        // General settings
+        $settings['date_format'] = sanitize_text_field( $_POST['date_format'] );
+        $settings['time_format'] = sanitize_text_field( $_POST['time_format'] );
+        $settings['timezone'] = sanitize_text_field( $_POST['timezone'] );
 
         update_option( 'booking_master_settings', $settings );
         

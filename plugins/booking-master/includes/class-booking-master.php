@@ -116,6 +116,11 @@ class Booking_Master {
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-services.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-bookings.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-zoom-integration.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-payment-gateways.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-email-notifications.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-availability-management.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-calendar-sync.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-reports.php';
 
         /**
          * The class responsible for defining all actions that occur in the admin area.
@@ -197,6 +202,26 @@ class Booking_Master {
         // Initialize Zoom integration
         $zoom = new Booking_Master_Zoom_Integration();
         $this->loader->add_action( 'init', $zoom, 'init' );
+
+        // Initialize payment gateways
+        $payment_gateways = new Booking_Master_Payment_Gateways();
+        $this->loader->add_action( 'init', $payment_gateways, 'init' );
+
+        // Initialize email notifications
+        $email_notifications = new Booking_Master_Email_Notifications();
+        $this->loader->add_action( 'init', $email_notifications, 'init' );
+
+        // Initialize availability management
+        $availability_management = new Booking_Master_Availability_Management();
+        $this->loader->add_action( 'init', $availability_management, 'init' );
+
+        // Initialize calendar sync
+        $calendar_sync = new Booking_Master_Calendar_Sync();
+        $this->loader->add_action( 'init', $calendar_sync, 'init' );
+
+        // Initialize reports
+        $reports = new Booking_Master_Reports();
+        $this->loader->add_action( 'init', $reports, 'init' );
     }
 
     /**
