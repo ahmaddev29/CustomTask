@@ -54,7 +54,7 @@ class Booking_Master_Services {
      */
     public function ajax_create_service() {
         // Check nonce and permissions
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_service_nonce' ) || ! current_user_can( 'bm_manage_services' ) ) {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_admin_nonce' ) || ! current_user_can( 'bm_manage_services' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -91,7 +91,7 @@ class Booking_Master_Services {
      */
     public function ajax_update_service() {
         // Check nonce and permissions
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_service_nonce' ) || ! current_user_can( 'bm_manage_services' ) ) {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_admin_nonce' ) || ! current_user_can( 'bm_manage_services' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -132,7 +132,7 @@ class Booking_Master_Services {
      */
     public function ajax_delete_service() {
         // Check nonce and permissions
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_service_nonce' ) || ! current_user_can( 'bm_manage_services' ) ) {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_admin_nonce' ) || ! current_user_can( 'bm_manage_services' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -344,7 +344,7 @@ class Booking_Master_Services {
                     <button type="button" class="btn btn-secondary" onclick="closeServiceForm()">Cancel</button>
                 </div>
                 
-                <?php wp_nonce_field( 'bm_service_nonce', 'nonce' ); ?>
+                <input type="hidden" name="nonce" value="<?php echo wp_create_nonce( 'bm_admin_nonce' ); ?>">
             </form>
         </div>
         <?php
