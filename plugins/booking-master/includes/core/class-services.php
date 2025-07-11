@@ -44,6 +44,7 @@ class Booking_Master_Services {
         add_action( 'wp_ajax_bm_delete_service', array( $this, 'ajax_delete_service' ) );
         add_action( 'wp_ajax_bm_get_services', array( $this, 'ajax_get_services' ) );
         add_action( 'wp_ajax_nopriv_bm_get_services', array( $this, 'ajax_get_services' ) );
+        add_action( 'wp_ajax_bm_get_service_form', array( $this, 'ajax_get_service_form' ) );
     }
 
     /**
@@ -170,6 +171,45 @@ class Booking_Master_Services {
     }
 
     /**
+     * Get service form (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_get_service_form() {
+        // Check nonce and permissions
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_public_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        // Check if user can manage services
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'You do not have permission to manage services.' ) );
+        }
+
+        $service_id = isset( $_POST['service_id'] ) ? intval( $_POST['service_id'] ) : null;
+        $service = null;
+
+        // If editing, get the service and verify ownership
+        if ( $service_id ) {
+            $service = $this->get_service( $service_id );
+            
+            if ( ! $service ) {
+                wp_send_json_error( array( 'message' => 'Service not found.' ) );
+            }
+
+            // Check if user owns this service or is admin
+            if ( $service->mentor_id != get_current_user_id() && ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error( array( 'message' => 'You do not have permission to edit this service.' ) );
+            }
+        }
+
+        // Get the form HTML
+        $form_html = $this->get_service_form( $service );
+
+        wp_send_json_success( array( 'html' => $form_html ) );
+    }
+
+    /**
      * Create a new service
      *
      * @since    1.0.0
@@ -259,25 +299,25 @@ class Booking_Master_Services {
                     <input type="hidden" name="action" value="bm_create_service">
                 <?php endif; ?>
                 
-                <div class="form-group">
+                <div class="bm-form-group">
                     <label for="service-name">Service Name: <span class="required">*</span></label>
                     <input type="text" id="service-name" name="service_name" 
                            value="<?php echo $is_edit ? esc_attr( $service->service_name ) : ''; ?>" required>
                 </div>
                 
-                <div class="form-group">
+                <div class="bm-form-group">
                     <label for="service-description">Description:</label>
                     <textarea id="service-description" name="description" rows="4"><?php echo $is_edit ? esc_textarea( $service->description ) : ''; ?></textarea>
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group col-md-6">
+                <div class="bm-form-row">
+                    <div class="bm-form-group">
                         <label for="service-price">Price ($): <span class="required">*</span></label>
                         <input type="number" id="service-price" name="price" step="0.01" min="0"
                                value="<?php echo $is_edit ? esc_attr( $service->price ) : ''; ?>" required>
                     </div>
                     
-                    <div class="form-group col-md-6">
+                    <div class="bm-form-group">
                         <label for="service-duration">Duration (minutes): <span class="required">*</span></label>
                         <select id="service-duration" name="duration" required>
                             <option value="">Select duration</option>
@@ -291,7 +331,7 @@ class Booking_Master_Services {
                     </div>
                 </div>
                 
-                <div class="form-group">
+                <div class="bm-form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="zoom_enabled" value="1" 
                                <?php echo ( $is_edit && $service->zoom_enabled ) ? 'checked' : ''; ?>>

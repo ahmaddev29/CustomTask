@@ -35,6 +35,9 @@
         
         // Handle mentor application form
         $(document).on('submit', '#bm-mentor-application-form', handleMentorApplication);
+        
+        // Handle service form submission (in modal)
+        $(document).on('submit', '#bm-service-form', handleServiceFormSubmission);
     }
 
     function handleBookingSubmission(e) {
@@ -342,6 +345,58 @@
         });
     }
 
+    function handleServiceFormSubmission(e) {
+        e.preventDefault();
+        
+        var form = $(this);
+        var formData = new FormData(form[0]);
+        
+        // Get the action from the hidden input
+        var action = form.find('input[name="action"]').val();
+        if (!action) {
+            action = 'bm_create_service';
+        }
+        
+        formData.append('action', action);
+        formData.append('nonce', bm_public_ajax.nonce);
+        
+        var submitButton = form.find('button[type="submit"]');
+        var originalText = submitButton.text();
+        submitButton.text('Saving...').prop('disabled', true);
+        form.addClass('bm-loading');
+        
+        $.ajax({
+            url: bm_public_ajax.ajax_url,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                form.removeClass('bm-loading');
+                submitButton.text(originalText).prop('disabled', false);
+                
+                if (response.success) {
+                    showMessage(response.data.message, 'success');
+                    
+                    // Close modal
+                    $('.bm-modal').hide();
+                    
+                    // Refresh page to show updated services
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showMessage(response.data.message, 'error');
+                }
+            },
+            error: function() {
+                form.removeClass('bm-loading');
+                submitButton.text(originalText).prop('disabled', false);
+                showMessage('An error occurred. Please try again.', 'error');
+            }
+        });
+    }
+
     function showMessage(message, type) {
         // Remove existing messages
         $('.bm-message').remove();
@@ -402,5 +457,79 @@
         var fakeButton = $('<button class="book-service" data-service-id="' + serviceId + '"></button>');
         openBookingModal.call(fakeButton[0], { preventDefault: function() {} });
     };
+
+    window.showServiceForm = function(serviceId) {
+        showServiceModal(serviceId);
+    };
+
+    window.closeServiceForm = function() {
+        $('.bm-modal').hide();
+    };
+
+    window.editService = function(serviceId) {
+        showServiceModal(serviceId);
+    };
+
+    window.deleteService = function(serviceId) {
+        if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+            // Trigger delete service action
+            $.ajax({
+                url: bm_public_ajax.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'bm_delete_service',
+                    service_id: serviceId,
+                    nonce: bm_public_ajax.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showMessage(response.data.message, 'success');
+                        // Refresh the services list
+                        location.reload();
+                    } else {
+                        showMessage(response.data.message, 'error');
+                    }
+                },
+                error: function() {
+                    showMessage('An error occurred. Please try again.', 'error');
+                }
+            });
+        }
+    };
+
+    function showServiceModal(serviceId) {
+        var modal = $('#service-modal');
+        if (modal.length === 0) {
+            // Create modal if it doesn't exist
+            modal = $('<div id="service-modal" class="bm-modal"><div class="bm-modal-content"><span class="bm-modal-close">&times;</span><div id="service-form-content"></div></div></div>');
+            $('body').append(modal);
+        }
+        
+        // Load service form via AJAX
+        var content = modal.find('#service-form-content');
+        content.html('<div style="padding: 40px; text-align: center;"><p>Loading...</p></div>');
+        
+        $.ajax({
+            url: bm_public_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'bm_get_service_form',
+                service_id: serviceId || '',
+                nonce: bm_public_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    content.html(response.data.html);
+                } else {
+                    content.html('<div style="padding: 40px; text-align: center;"><p>Error loading form.</p></div>');
+                }
+            },
+            error: function() {
+                content.html('<div style="padding: 40px; text-align: center;"><p>Error loading form. Please try again.</p></div>');
+            }
+        });
+        
+        modal.show();
+    }
 
 })(jQuery);
