@@ -33,14 +33,8 @@ $settings = wp_parse_args($settings, $defaults);
         <a href="?page=booking-master-settings&tab=general" class="nav-tab <?php echo $current_tab === 'general' ? 'nav-tab-active' : ''; ?>">
             General
         </a>
-        <a href="?page=booking-master-settings&tab=payment" class="nav-tab <?php echo $current_tab === 'payment' ? 'nav-tab-active' : ''; ?>">
-            Payment
-        </a>
         <a href="?page=booking-master-settings&tab=fees" class="nav-tab <?php echo $current_tab === 'fees' ? 'nav-tab-active' : ''; ?>">
             Fees & Taxes
-        </a>
-        <a href="?page=booking-master-settings&tab=email" class="nav-tab <?php echo $current_tab === 'email' ? 'nav-tab-active' : ''; ?>">
-            Email
         </a>
         <a href="?page=booking-master-settings&tab=calendar" class="nav-tab <?php echo $current_tab === 'calendar' ? 'nav-tab-active' : ''; ?>">
             Calendar
@@ -58,13 +52,14 @@ $settings = wp_parse_args($settings, $defaults);
             <?php wp_nonce_field( 'bm_settings', 'settings_nonce' ); ?>
             
             <?php if ( $current_tab === 'general' ) : ?>
+                <h2><?php esc_html_e( 'General Settings', 'booking-master' ); ?></h2>
                 <table class="form-table">
                     <tr>
                         <th scope="row">
                             <label for="currency_symbol"><?php esc_html_e( 'Currency Symbol', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="text" id="currency_symbol" name="booking_master_settings[currency_symbol]" 
+                            <input type="text" id="currency_symbol" name="currency_symbol" 
                                    value="<?php echo esc_attr( $settings['currency_symbol'] ?? '$' ); ?>" 
                                    class="regular-text" maxlength="3" />
                             <p class="description"><?php esc_html_e( 'The currency symbol to display with prices.', 'booking-master' ); ?></p>
@@ -76,7 +71,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="currency_position"><?php esc_html_e( 'Currency Position', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <select id="currency_position" name="booking_master_settings[currency_position]">
+                            <select id="currency_position" name="currency_position">
                                 <option value="before" <?php selected( $settings['currency_position'] ?? 'before', 'before' ); ?>>
                                     <?php esc_html_e( 'Before amount ($100)', 'booking-master' ); ?>
                                 </option>
@@ -92,7 +87,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="timezone"><?php esc_html_e( 'Timezone', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <select id="timezone" name="booking_master_settings[timezone]">
+                            <select id="timezone" name="timezone">
                                 <?php
                                 $selected_timezone = $settings['timezone'] ?? get_option( 'timezone_string' );
                                 $timezone_identifiers = timezone_identifiers_list();
@@ -115,7 +110,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="booking_buffer_time"><?php esc_html_e( 'Booking Buffer Time', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="number" id="booking_buffer_time" name="booking_master_settings[booking_buffer_time]" 
+                            <input type="number" id="booking_buffer_time" name="booking_buffer_time" 
                                    value="<?php echo esc_attr( $settings['booking_buffer_time'] ?? 15 ); ?>" 
                                    class="small-text" min="0" max="120" />
                             <span><?php esc_html_e( 'minutes', 'booking-master' ); ?></span>
@@ -128,7 +123,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="advance_booking_days"><?php esc_html_e( 'Advance Booking Days', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="number" id="advance_booking_days" name="booking_master_settings[advance_booking_days]" 
+                            <input type="number" id="advance_booking_days" name="advance_booking_days" 
                                    value="<?php echo esc_attr( $settings['advance_booking_days'] ?? 30 ); ?>" 
                                    class="small-text" min="1" max="365" />
                             <span><?php esc_html_e( 'days', 'booking-master' ); ?></span>
@@ -138,10 +133,23 @@ $settings = wp_parse_args($settings, $defaults);
                     
                     <tr>
                         <th scope="row">
+                            <label for="auto_approve_bookings"><?php esc_html_e( 'Auto-approve Bookings', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <label>
+                                <input type="checkbox" id="auto_approve_bookings" name="auto_approve_bookings" 
+                                       value="1" <?php checked( $settings['auto_approve_bookings'] ?? false, true ); ?> />
+                                <?php esc_html_e( 'Automatically approve new bookings', 'booking-master' ); ?>
+                            </label>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
                             <label for="cancellation_policy"><?php esc_html_e( 'Cancellation Policy', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <textarea id="cancellation_policy" name="booking_master_settings[cancellation_policy]" 
+                            <textarea id="cancellation_policy" name="cancellation_policy" 
                                       rows="4" cols="50"><?php echo esc_textarea( $settings['cancellation_policy'] ?? '' ); ?></textarea>
                             <p class="description"><?php esc_html_e( 'Cancellation policy to display to customers.', 'booking-master' ); ?></p>
                         </td>
@@ -152,7 +160,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="terms_of_service"><?php esc_html_e( 'Terms of Service URL', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="url" id="terms_of_service" name="booking_master_settings[terms_of_service]" 
+                            <input type="url" id="terms_of_service" name="terms_of_service" 
                                    value="<?php echo esc_attr( $settings['terms_of_service'] ?? '' ); ?>" 
                                    class="regular-text" />
                             <p class="description"><?php esc_html_e( 'URL to your terms of service page.', 'booking-master' ); ?></p>
@@ -164,145 +172,13 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="privacy_policy"><?php esc_html_e( 'Privacy Policy URL', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="url" id="privacy_policy" name="booking_master_settings[privacy_policy]" 
+                            <input type="url" id="privacy_policy" name="privacy_policy" 
                                    value="<?php echo esc_attr( $settings['privacy_policy'] ?? '' ); ?>" 
                                    class="regular-text" />
                             <p class="description"><?php esc_html_e( 'URL to your privacy policy page.', 'booking-master' ); ?></p>
                         </td>
                     </tr>
                 </table>
-                
-            <?php elseif ( $current_tab === 'payment' ) : ?>
-                <h2><?php esc_html_e( 'Payment Gateways', 'booking-master' ); ?></h2>
-                
-                <!-- Stripe Settings -->
-                <div class="bm-payment-gateway">
-                    <h3><?php esc_html_e( 'Stripe Settings', 'booking-master' ); ?></h3>
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row">
-                                <label for="stripe_enabled"><?php esc_html_e( 'Enable Stripe', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <label>
-                                    <input type="checkbox" id="stripe_enabled" name="booking_master_settings[stripe_enabled]" 
-                                           value="1" <?php checked( $settings['stripe_enabled'] ?? 0, 1 ); ?> />
-                                    <?php esc_html_e( 'Enable Stripe payment processing', 'booking-master' ); ?>
-                                </label>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row">
-                                <label for="stripe_test_mode"><?php esc_html_e( 'Test Mode', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <label>
-                                    <input type="checkbox" id="stripe_test_mode" name="booking_master_settings[stripe_test_mode]" 
-                                           value="1" <?php checked( $settings['stripe_test_mode'] ?? 1, 1 ); ?> />
-                                    <?php esc_html_e( 'Enable test mode', 'booking-master' ); ?>
-                                </label>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row">
-                                <label for="stripe_publishable_key"><?php esc_html_e( 'Publishable Key', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="text" id="stripe_publishable_key" name="booking_master_settings[stripe_publishable_key]" 
-                                       value="<?php echo esc_attr( $settings['stripe_publishable_key'] ?? '' ); ?>" 
-                                       class="regular-text code" />
-                                <p class="description"><?php esc_html_e( 'Your Stripe publishable key.', 'booking-master' ); ?></p>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row">
-                                <label for="stripe_secret_key"><?php esc_html_e( 'Secret Key', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="password" id="stripe_secret_key" name="booking_master_settings[stripe_secret_key]" 
-                                       value="<?php echo esc_attr( $settings['stripe_secret_key'] ?? '' ); ?>" 
-                                       class="regular-text code" />
-                                <p class="description"><?php esc_html_e( 'Your Stripe secret key.', 'booking-master' ); ?></p>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row">
-                                <label for="stripe_webhook_secret"><?php esc_html_e( 'Webhook Secret', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="password" id="stripe_webhook_secret" name="booking_master_settings[stripe_webhook_secret]" 
-                                       value="<?php echo esc_attr( $settings['stripe_webhook_secret'] ?? '' ); ?>" 
-                                       class="regular-text code" />
-                                <p class="description">
-                                    <?php esc_html_e( 'Your Stripe webhook secret.', 'booking-master' ); ?>
-                                    <br>
-                                    <?php esc_html_e( 'Webhook URL:', 'booking-master' ); ?>
-                                    <code><?php echo esc_url( home_url( '/wp-json/booking-master/v1/stripe-webhook' ) ); ?></code>
-                                </p>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-                
-                <!-- PayPal Settings -->
-                <div class="bm-payment-gateway">
-                    <h3><?php esc_html_e( 'PayPal Settings', 'booking-master' ); ?></h3>
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row">
-                                <label for="paypal_enabled"><?php esc_html_e( 'Enable PayPal', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <label>
-                                    <input type="checkbox" id="paypal_enabled" name="booking_master_settings[paypal_enabled]" 
-                                           value="1" <?php checked( $settings['paypal_enabled'] ?? 0, 1 ); ?> />
-                                    <?php esc_html_e( 'Enable PayPal payment processing', 'booking-master' ); ?>
-                                </label>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row">
-                                <label for="paypal_test_mode"><?php esc_html_e( 'Test Mode', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <label>
-                                    <input type="checkbox" id="paypal_test_mode" name="booking_master_settings[paypal_test_mode]" 
-                                           value="1" <?php checked( $settings['paypal_test_mode'] ?? 1, 1 ); ?> />
-                                    <?php esc_html_e( 'Enable test mode', 'booking-master' ); ?>
-                                </label>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row">
-                                <label for="paypal_client_id"><?php esc_html_e( 'Client ID', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="text" id="paypal_client_id" name="booking_master_settings[paypal_client_id]" 
-                                       value="<?php echo esc_attr( $settings['paypal_client_id'] ?? '' ); ?>" 
-                                       class="regular-text code" />
-                                <p class="description"><?php esc_html_e( 'Your PayPal client ID.', 'booking-master' ); ?></p>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row">
-                                <label for="paypal_client_secret"><?php esc_html_e( 'Client Secret', 'booking-master' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="password" id="paypal_client_secret" name="booking_master_settings[paypal_client_secret]" 
-                                       value="<?php echo esc_attr( $settings['paypal_client_secret'] ?? '' ); ?>" 
-                                       class="regular-text code" />
-                                <p class="description"><?php esc_html_e( 'Your PayPal client secret.', 'booking-master' ); ?></p>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
                 
             <?php elseif ( $current_tab === 'fees' ) : ?>
                 <h2><?php esc_html_e( 'Fees & Taxes', 'booking-master' ); ?></h2>
@@ -314,7 +190,7 @@ $settings = wp_parse_args($settings, $defaults);
                         </th>
                         <td>
                             <label>
-                                <input type="checkbox" id="management_fee_enabled" name="booking_master_settings[management_fee_enabled]" 
+                                <input type="checkbox" id="management_fee_enabled" name="management_fee_enabled" 
                                        value="1" <?php checked( $settings['management_fee_enabled'] ?? 0, 1 ); ?> />
                                 <?php esc_html_e( 'Add management fee to all bookings', 'booking-master' ); ?>
                             </label>
@@ -326,7 +202,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="management_fee_rate"><?php esc_html_e( 'Management Fee Rate', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="number" id="management_fee_rate" name="booking_master_settings[management_fee_rate]" 
+                            <input type="number" id="management_fee_rate" name="management_fee_rate" 
                                    value="<?php echo esc_attr( $settings['management_fee_rate'] ?? 10 ); ?>" 
                                    class="small-text" min="0" max="100" step="0.1" />
                             <span>%</span>
@@ -339,7 +215,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="management_fee_description"><?php esc_html_e( 'Management Fee Description', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="text" id="management_fee_description" name="booking_master_settings[management_fee_description]" 
+                            <input type="text" id="management_fee_description" name="management_fee_description" 
                                    value="<?php echo esc_attr( $settings['management_fee_description'] ?? 'Platform Fee' ); ?>" 
                                    class="regular-text" />
                             <p class="description"><?php esc_html_e( 'Description shown to customers for the management fee.', 'booking-master' ); ?></p>
@@ -352,7 +228,7 @@ $settings = wp_parse_args($settings, $defaults);
                         </th>
                         <td>
                             <label>
-                                <input type="checkbox" id="tax_enabled" name="booking_master_settings[tax_enabled]" 
+                                <input type="checkbox" id="tax_enabled" name="tax_enabled" 
                                        value="1" <?php checked( $settings['tax_enabled'] ?? 0, 1 ); ?> />
                                 <?php esc_html_e( 'Add tax to all bookings', 'booking-master' ); ?>
                             </label>
@@ -364,7 +240,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="tax_rate"><?php esc_html_e( 'Tax Rate', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="number" id="tax_rate" name="booking_master_settings[tax_rate]" 
+                            <input type="number" id="tax_rate" name="tax_rate" 
                                    value="<?php echo esc_attr( $settings['tax_rate'] ?? 0 ); ?>" 
                                    class="small-text" min="0" max="100" step="0.1" />
                             <span>%</span>
@@ -377,7 +253,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="tax_description"><?php esc_html_e( 'Tax Description', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="text" id="tax_description" name="booking_master_settings[tax_description]" 
+                            <input type="text" id="tax_description" name="tax_description" 
                                    value="<?php echo esc_attr( $settings['tax_description'] ?? 'Tax' ); ?>" 
                                    class="regular-text" />
                             <p class="description"><?php esc_html_e( 'Description shown to customers for tax.', 'booking-master' ); ?></p>
@@ -389,7 +265,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="tax_handling"><?php esc_html_e( 'Tax Handling', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <select id="tax_handling" name="booking_master_settings[tax_handling]">
+                            <select id="tax_handling" name="tax_handling">
                                 <option value="admin" <?php selected( $settings['tax_handling'] ?? 'admin', 'admin' ); ?>>
                                     <?php esc_html_e( 'Admin keeps tax', 'booking-master' ); ?>
                                 </option>
@@ -406,7 +282,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="pricing_display"><?php esc_html_e( 'Pricing Display', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <select id="pricing_display" name="booking_master_settings[pricing_display]">
+                            <select id="pricing_display" name="pricing_display">
                                 <option value="exclusive" <?php selected( $settings['pricing_display'] ?? 'exclusive', 'exclusive' ); ?>>
                                     <?php esc_html_e( 'Exclusive (fees added at checkout)', 'booking-master' ); ?>
                                 </option>
@@ -415,6 +291,164 @@ $settings = wp_parse_args($settings, $defaults);
                                 </option>
                             </select>
                             <p class="description"><?php esc_html_e( 'How to display prices to customers.', 'booking-master' ); ?></p>
+                        </td>
+                    </tr>
+                </table>
+                
+            <?php elseif ( $current_tab === 'calendar' ) : ?>
+                <h2><?php esc_html_e( 'Calendar Sync Settings', 'booking-master' ); ?></h2>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="calendar_sync_enabled"><?php esc_html_e( 'Enable Calendar Sync', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <label>
+                                <input type="checkbox" id="calendar_sync_enabled" name="calendar_sync_enabled" 
+                                       value="1" <?php checked( $settings['calendar_sync_enabled'] ?? 0, 1 ); ?> />
+                                <?php esc_html_e( 'Enable calendar synchronization', 'booking-master' ); ?>
+                            </label>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="google_calendar_enabled"><?php esc_html_e( 'Google Calendar', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <label>
+                                <input type="checkbox" id="google_calendar_enabled" name="google_calendar_enabled" 
+                                       value="1" <?php checked( $settings['google_calendar_enabled'] ?? 0, 1 ); ?> />
+                                <?php esc_html_e( 'Enable Google Calendar integration', 'booking-master' ); ?>
+                            </label>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="google_client_id"><?php esc_html_e( 'Google Client ID', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="google_client_id" name="google_client_id" 
+                                   value="<?php echo esc_attr( $settings['google_client_id'] ?? '' ); ?>" 
+                                   class="regular-text" />
+                            <p class="description"><?php esc_html_e( 'Google OAuth Client ID for calendar integration.', 'booking-master' ); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="google_client_secret"><?php esc_html_e( 'Google Client Secret', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="password" id="google_client_secret" name="google_client_secret" 
+                                   value="<?php echo esc_attr( $settings['google_client_secret'] ?? '' ); ?>" 
+                                   class="regular-text" />
+                            <p class="description"><?php esc_html_e( 'Google OAuth Client Secret for calendar integration.', 'booking-master' ); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="outlook_calendar_enabled"><?php esc_html_e( 'Outlook Calendar', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <label>
+                                <input type="checkbox" id="outlook_calendar_enabled" name="outlook_calendar_enabled" 
+                                       value="1" <?php checked( $settings['outlook_calendar_enabled'] ?? 0, 1 ); ?> />
+                                <?php esc_html_e( 'Enable Outlook Calendar integration', 'booking-master' ); ?>
+                            </label>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="outlook_client_id"><?php esc_html_e( 'Outlook Client ID', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="outlook_client_id" name="outlook_client_id" 
+                                   value="<?php echo esc_attr( $settings['outlook_client_id'] ?? '' ); ?>" 
+                                   class="regular-text" />
+                            <p class="description"><?php esc_html_e( 'Microsoft Azure Client ID for Outlook integration.', 'booking-master' ); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="outlook_client_secret"><?php esc_html_e( 'Outlook Client Secret', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="password" id="outlook_client_secret" name="outlook_client_secret" 
+                                   value="<?php echo esc_attr( $settings['outlook_client_secret'] ?? '' ); ?>" 
+                                   class="regular-text" />
+                            <p class="description"><?php esc_html_e( 'Microsoft Azure Client Secret for Outlook integration.', 'booking-master' ); ?></p>
+                        </td>
+                    </tr>
+                </table>
+                
+            <?php elseif ( $current_tab === 'zoom' ) : ?>
+                <h2><?php esc_html_e( 'Zoom Integration Settings', 'booking-master' ); ?></h2>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="zoom_enabled"><?php esc_html_e( 'Enable Zoom', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <label>
+                                <input type="checkbox" id="zoom_enabled" name="zoom_enabled" 
+                                       value="1" <?php checked( $settings['zoom_enabled'] ?? 0, 1 ); ?> />
+                                <?php esc_html_e( 'Enable Zoom integration for online sessions', 'booking-master' ); ?>
+                            </label>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="zoom_api_key"><?php esc_html_e( 'Zoom API Key', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="zoom_api_key" name="zoom_api_key" 
+                                   value="<?php echo esc_attr( $settings['zoom_api_key'] ?? '' ); ?>" 
+                                   class="regular-text" />
+                            <p class="description"><?php esc_html_e( 'Your Zoom API Key.', 'booking-master' ); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="zoom_api_secret"><?php esc_html_e( 'Zoom API Secret', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="password" id="zoom_api_secret" name="zoom_api_secret" 
+                                   value="<?php echo esc_attr( $settings['zoom_api_secret'] ?? '' ); ?>" 
+                                   class="regular-text" />
+                            <p class="description"><?php esc_html_e( 'Your Zoom API Secret.', 'booking-master' ); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="zoom_oauth_client_id"><?php esc_html_e( 'Zoom OAuth Client ID', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="zoom_oauth_client_id" name="zoom_oauth_client_id" 
+                                   value="<?php echo esc_attr( $settings['zoom_oauth_client_id'] ?? '' ); ?>" 
+                                   class="regular-text" />
+                            <p class="description"><?php esc_html_e( 'Your Zoom OAuth Client ID.', 'booking-master' ); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="zoom_oauth_client_secret"><?php esc_html_e( 'Zoom OAuth Client Secret', 'booking-master' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="password" id="zoom_oauth_client_secret" name="zoom_oauth_client_secret" 
+                                   value="<?php echo esc_attr( $settings['zoom_oauth_client_secret'] ?? '' ); ?>" 
+                                   class="regular-text" />
+                            <p class="description"><?php esc_html_e( 'Your Zoom OAuth Client Secret.', 'booking-master' ); ?></p>
                         </td>
                     </tr>
                 </table>
@@ -429,7 +463,7 @@ $settings = wp_parse_args($settings, $defaults);
                         </th>
                         <td>
                             <label>
-                                <input type="checkbox" id="marketplace_enabled" name="booking_master_settings[marketplace_enabled]" 
+                                <input type="checkbox" id="marketplace_enabled" name="marketplace_enabled" 
                                        value="1" <?php checked( $settings['marketplace_enabled'] ?? 0, 1 ); ?> />
                                 <?php esc_html_e( 'Enable Stripe marketplace functionality', 'booking-master' ); ?>
                             </label>
@@ -442,7 +476,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="marketplace_application_fee"><?php esc_html_e( 'Application Fee', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="number" id="marketplace_application_fee" name="booking_master_settings[marketplace_application_fee]" 
+                            <input type="number" id="marketplace_application_fee" name="marketplace_application_fee" 
                                    value="<?php echo esc_attr( $settings['marketplace_application_fee'] ?? 10 ); ?>" 
                                    class="small-text" min="0" max="100" step="0.1" />
                             <span>%</span>
@@ -455,7 +489,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="marketplace_payout_schedule"><?php esc_html_e( 'Payout Schedule', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <select id="marketplace_payout_schedule" name="booking_master_settings[marketplace_payout_schedule]">
+                            <select id="marketplace_payout_schedule" name="marketplace_payout_schedule">
                                 <option value="immediate" <?php selected( $settings['marketplace_payout_schedule'] ?? 'immediate', 'immediate' ); ?>>
                                     <?php esc_html_e( 'Immediate (after session completion)', 'booking-master' ); ?>
                                 </option>
@@ -475,7 +509,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="marketplace_onboarding_redirect"><?php esc_html_e( 'Onboarding Redirect URL', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <input type="url" id="marketplace_onboarding_redirect" name="booking_master_settings[marketplace_onboarding_redirect]" 
+                            <input type="url" id="marketplace_onboarding_redirect" name="marketplace_onboarding_redirect" 
                                    value="<?php echo esc_attr( $settings['marketplace_onboarding_redirect'] ?? '' ); ?>" 
                                    class="regular-text" />
                             <p class="description"><?php esc_html_e( 'URL to redirect mentors after completing Stripe onboarding.', 'booking-master' ); ?></p>
@@ -487,7 +521,7 @@ $settings = wp_parse_args($settings, $defaults);
                             <label for="marketplace_account_requirements"><?php esc_html_e( 'Account Requirements', 'booking-master' ); ?></label>
                         </th>
                         <td>
-                            <textarea id="marketplace_account_requirements" name="booking_master_settings[marketplace_account_requirements]" 
+                            <textarea id="marketplace_account_requirements" name="marketplace_account_requirements" 
                                       rows="4" cols="50"><?php echo esc_textarea( $settings['marketplace_account_requirements'] ?? '' ); ?></textarea>
                             <p class="description"><?php esc_html_e( 'Requirements for mentor accounts (shown during onboarding).', 'booking-master' ); ?></p>
                         </td>
@@ -499,364 +533,72 @@ $settings = wp_parse_args($settings, $defaults);
                         </th>
                         <td>
                             <label>
-                                <input type="checkbox" id="marketplace_auto_accept" name="booking_master_settings[marketplace_auto_accept]" 
+                                <input type="checkbox" id="marketplace_auto_accept" name="marketplace_auto_accept" 
                                        value="1" <?php checked( $settings['marketplace_auto_accept'] ?? 0, 1 ); ?> />
                                 <?php esc_html_e( 'Automatically accept mentor applications', 'booking-master' ); ?>
                             </label>
-                            <p class="description"><?php esc_html_e( 'If disabled, mentor applications will need manual approval.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                </table>
-                
-            <?php elseif ( $current_tab === 'email' ) : ?>
-                <h2><?php esc_html_e( 'Email Notifications', 'booking-master' ); ?></h2>
-                
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="email_notifications"><?php esc_html_e( 'Enable Email Notifications', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="email_notifications" name="booking_master_settings[email_notifications]" 
-                                       value="1" <?php checked( $settings['email_notifications'] ?? 1, 1 ); ?> />
-                                <?php esc_html_e( 'Send email notifications', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="from_email"><?php esc_html_e( 'From Email Address', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="email" id="from_email" name="booking_master_settings[from_email]" 
-                                   value="<?php echo esc_attr( $settings['from_email'] ?? get_option( 'admin_email' ) ); ?>" 
-                                   class="regular-text" />
-                            <p class="description"><?php esc_html_e( 'Email address to send notifications from.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="from_name"><?php esc_html_e( 'From Name', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="text" id="from_name" name="booking_master_settings[from_name]" 
-                                   value="<?php echo esc_attr( $settings['from_name'] ?? get_bloginfo( 'name' ) ); ?>" 
-                                   class="regular-text" />
-                            <p class="description"><?php esc_html_e( 'Name to appear in email notifications.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="booking_confirmation_email"><?php esc_html_e( 'Booking Confirmation', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="booking_confirmation_email" name="booking_master_settings[booking_confirmation_email]" 
-                                       value="1" <?php checked( $settings['booking_confirmation_email'] ?? 1, 1 ); ?> />
-                                <?php esc_html_e( 'Send booking confirmation emails', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="booking_reminder_email"><?php esc_html_e( 'Booking Reminders', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="booking_reminder_email" name="booking_master_settings[booking_reminder_email]" 
-                                       value="1" <?php checked( $settings['booking_reminder_email'] ?? 1, 1 ); ?> />
-                                <?php esc_html_e( 'Send booking reminder emails', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="reminder_hours"><?php esc_html_e( 'Reminder Hours', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="number" id="reminder_hours" name="booking_master_settings[reminder_hours]" 
-                                   value="<?php echo esc_attr( $settings['reminder_hours'] ?? 24 ); ?>" 
-                                   class="small-text" min="1" max="72" />
-                            <span><?php esc_html_e( 'hours before session', 'booking-master' ); ?></span>
-                            <p class="description"><?php esc_html_e( 'How many hours before the session to send reminders.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="booking_cancellation_email"><?php esc_html_e( 'Cancellation Emails', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="booking_cancellation_email" name="booking_master_settings[booking_cancellation_email]" 
-                                       value="1" <?php checked( $settings['booking_cancellation_email'] ?? 1, 1 ); ?> />
-                                <?php esc_html_e( 'Send cancellation emails', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="payment_confirmation_email"><?php esc_html_e( 'Payment Confirmation', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="payment_confirmation_email" name="booking_master_settings[payment_confirmation_email]" 
-                                       value="1" <?php checked( $settings['payment_confirmation_email'] ?? 1, 1 ); ?> />
-                                <?php esc_html_e( 'Send payment confirmation emails', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="follow_up_email"><?php esc_html_e( 'Follow-up Emails', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="follow_up_email" name="booking_master_settings[follow_up_email]" 
-                                       value="1" <?php checked( $settings['follow_up_email'] ?? 0, 1 ); ?> />
-                                <?php esc_html_e( 'Send follow-up emails after sessions', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                </table>
-                
-            <?php elseif ( $current_tab === 'calendar' ) : ?>
-                <h2><?php esc_html_e( 'Calendar Synchronization', 'booking-master' ); ?></h2>
-                
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="calendar_sync_enabled"><?php esc_html_e( 'Enable Calendar Sync', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="calendar_sync_enabled" name="booking_master_settings[calendar_sync_enabled]" 
-                                       value="1" <?php checked( $settings['calendar_sync_enabled'] ?? 0, 1 ); ?> />
-                                <?php esc_html_e( 'Enable calendar synchronization', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="google_calendar_enabled"><?php esc_html_e( 'Google Calendar', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="google_calendar_enabled" name="booking_master_settings[google_calendar_enabled]" 
-                                       value="1" <?php checked( $settings['google_calendar_enabled'] ?? 0, 1 ); ?> />
-                                <?php esc_html_e( 'Enable Google Calendar integration', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="google_client_id"><?php esc_html_e( 'Google Client ID', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="text" id="google_client_id" name="booking_master_settings[google_client_id]" 
-                                   value="<?php echo esc_attr( $settings['google_client_id'] ?? '' ); ?>" 
-                                   class="regular-text code" />
-                            <p class="description"><?php esc_html_e( 'Google OAuth2 Client ID.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="google_client_secret"><?php esc_html_e( 'Google Client Secret', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="password" id="google_client_secret" name="booking_master_settings[google_client_secret]" 
-                                   value="<?php echo esc_attr( $settings['google_client_secret'] ?? '' ); ?>" 
-                                   class="regular-text code" />
-                            <p class="description"><?php esc_html_e( 'Google OAuth2 Client Secret.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="outlook_calendar_enabled"><?php esc_html_e( 'Outlook Calendar', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="outlook_calendar_enabled" name="booking_master_settings[outlook_calendar_enabled]" 
-                                       value="1" <?php checked( $settings['outlook_calendar_enabled'] ?? 0, 1 ); ?> />
-                                <?php esc_html_e( 'Enable Outlook Calendar integration', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="outlook_client_id"><?php esc_html_e( 'Outlook Client ID', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="text" id="outlook_client_id" name="booking_master_settings[outlook_client_id]" 
-                                   value="<?php echo esc_attr( $settings['outlook_client_id'] ?? '' ); ?>" 
-                                   class="regular-text code" />
-                            <p class="description"><?php esc_html_e( 'Microsoft Azure Application ID.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="outlook_client_secret"><?php esc_html_e( 'Outlook Client Secret', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="password" id="outlook_client_secret" name="booking_master_settings[outlook_client_secret]" 
-                                   value="<?php echo esc_attr( $settings['outlook_client_secret'] ?? '' ); ?>" 
-                                   class="regular-text code" />
-                            <p class="description"><?php esc_html_e( 'Microsoft Azure Application Secret.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="calendar_sync_direction"><?php esc_html_e( 'Sync Direction', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <select id="calendar_sync_direction" name="booking_master_settings[calendar_sync_direction]">
-                                <option value="both" <?php selected( $settings['calendar_sync_direction'] ?? 'both', 'both' ); ?>>
-                                    <?php esc_html_e( 'Both directions', 'booking-master' ); ?>
-                                </option>
-                                <option value="to_calendar" <?php selected( $settings['calendar_sync_direction'] ?? 'both', 'to_calendar' ); ?>>
-                                    <?php esc_html_e( 'To calendar only', 'booking-master' ); ?>
-                                </option>
-                                <option value="from_calendar" <?php selected( $settings['calendar_sync_direction'] ?? 'both', 'from_calendar' ); ?>>
-                                    <?php esc_html_e( 'From calendar only', 'booking-master' ); ?>
-                                </option>
-                            </select>
-                            <p class="description"><?php esc_html_e( 'How to sync events between plugin and calendar.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                </table>
-                
-            <?php elseif ( $current_tab === 'zoom' ) : ?>
-                <h2><?php esc_html_e( 'Zoom Integration', 'booking-master' ); ?></h2>
-                
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="zoom_enabled"><?php esc_html_e( 'Enable Zoom', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="zoom_enabled" name="booking_master_settings[zoom_enabled]" 
-                                       value="1" <?php checked( $settings['zoom_enabled'] ?? 0, 1 ); ?> />
-                                <?php esc_html_e( 'Enable Zoom integration', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="zoom_oauth_client_id"><?php esc_html_e( 'Zoom OAuth Client ID', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="text" id="zoom_oauth_client_id" name="booking_master_settings[zoom_oauth_client_id]" 
-                                   value="<?php echo esc_attr( $settings['zoom_oauth_client_id'] ?? '' ); ?>" 
-                                   class="regular-text code" />
-                            <p class="description"><?php esc_html_e( 'Zoom OAuth2 Client ID for individual mentor accounts.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="zoom_oauth_client_secret"><?php esc_html_e( 'Zoom OAuth Client Secret', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="password" id="zoom_oauth_client_secret" name="booking_master_settings[zoom_oauth_client_secret]" 
-                                   value="<?php echo esc_attr( $settings['zoom_oauth_client_secret'] ?? '' ); ?>" 
-                                   class="regular-text code" />
-                            <p class="description"><?php esc_html_e( 'Zoom OAuth2 Client Secret.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="zoom_auto_create"><?php esc_html_e( 'Auto-create Meetings', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="zoom_auto_create" name="booking_master_settings[zoom_auto_create]" 
-                                       value="1" <?php checked( $settings['zoom_auto_create'] ?? 1, 1 ); ?> />
-                                <?php esc_html_e( 'Automatically create Zoom meetings for confirmed bookings', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="zoom_meeting_duration"><?php esc_html_e( 'Default Meeting Duration', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <select id="zoom_meeting_duration" name="booking_master_settings[zoom_meeting_duration]">
-                                <option value="service" <?php selected( $settings['zoom_meeting_duration'] ?? 'service', 'service' ); ?>>
-                                    <?php esc_html_e( 'Use service duration', 'booking-master' ); ?>
-                                </option>
-                                <option value="30" <?php selected( $settings['zoom_meeting_duration'] ?? 'service', '30' ); ?>>
-                                    <?php esc_html_e( '30 minutes', 'booking-master' ); ?>
-                                </option>
-                                <option value="60" <?php selected( $settings['zoom_meeting_duration'] ?? 'service', '60' ); ?>>
-                                    <?php esc_html_e( '60 minutes', 'booking-master' ); ?>
-                                </option>
-                                <option value="90" <?php selected( $settings['zoom_meeting_duration'] ?? 'service', '90' ); ?>>
-                                    <?php esc_html_e( '90 minutes', 'booking-master' ); ?>
-                                </option>
-                                <option value="120" <?php selected( $settings['zoom_meeting_duration'] ?? 'service', '120' ); ?>>
-                                    <?php esc_html_e( '120 minutes', 'booking-master' ); ?>
-                                </option>
-                            </select>
-                            <p class="description"><?php esc_html_e( 'Default duration for Zoom meetings.', 'booking-master' ); ?></p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="zoom_waiting_room"><?php esc_html_e( 'Waiting Room', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="zoom_waiting_room" name="booking_master_settings[zoom_waiting_room]" 
-                                       value="1" <?php checked( $settings['zoom_waiting_room'] ?? 1, 1 ); ?> />
-                                <?php esc_html_e( 'Enable waiting room for meetings', 'booking-master' ); ?>
-                            </label>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="zoom_recording"><?php esc_html_e( 'Recording', 'booking-master' ); ?></label>
-                        </th>
-                        <td>
-                            <select id="zoom_recording" name="booking_master_settings[zoom_recording]">
-                                <option value="none" <?php selected( $settings['zoom_recording'] ?? 'none', 'none' ); ?>>
-                                    <?php esc_html_e( 'No recording', 'booking-master' ); ?>
-                                </option>
-                                <option value="local" <?php selected( $settings['zoom_recording'] ?? 'none', 'local' ); ?>>
-                                    <?php esc_html_e( 'Local recording', 'booking-master' ); ?>
-                                </option>
-                                <option value="cloud" <?php selected( $settings['zoom_recording'] ?? 'none', 'cloud' ); ?>>
-                                    <?php esc_html_e( 'Cloud recording', 'booking-master' ); ?>
-                                </option>
-                            </select>
-                            <p class="description"><?php esc_html_e( 'Default recording setting for meetings.', 'booking-master' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'If disabled, admin must manually approve mentor applications.', 'booking-master' ); ?></p>
                         </td>
                     </tr>
                 </table>
                 
             <?php endif; ?>
             
-            <?php submit_button(); ?>
+            <p class="submit">
+                <input type="submit" name="submit" class="button-primary" value="<?php esc_attr_e( 'Save Settings', 'booking-master' ); ?>" />
+            </p>
         </form>
     </div>
 </div>
+
+<style>
+.nav-tab-wrapper {
+    margin-bottom: 20px;
+}
+
+.form-table th {
+    width: 200px;
+}
+
+.form-table td {
+    padding: 15px 10px;
+}
+
+.form-table input[type="text"],
+.form-table input[type="email"],
+.form-table input[type="url"],
+.form-table input[type="password"],
+.form-table textarea,
+.form-table select {
+    width: 100%;
+    max-width: 400px;
+}
+
+.form-table input[type="number"] {
+    width: 80px;
+}
+
+.form-table textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+.description {
+    color: #666;
+    font-style: italic;
+    margin-top: 5px;
+}
+
+@media (max-width: 782px) {
+    .form-table th,
+    .form-table td {
+        display: block;
+        width: 100%;
+        padding: 10px 0;
+    }
+    
+    .form-table th {
+        border-bottom: 0;
+        padding-bottom: 5px;
+    }
+}</style>

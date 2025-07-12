@@ -178,30 +178,6 @@ class Booking_Master_Admin {
             'booking-master-settings',
             array( $this, 'display_settings_page' )
         );
-
-        // Mentor dashboard (for mentors only)
-        if ( current_user_can( 'bm_manage_services' ) ) {
-            add_submenu_page(
-                'booking-master',
-                'Mentor Dashboard',
-                'Mentor Dashboard',
-                'bm_manage_services',
-                'booking-master-mentor',
-                array( $this, 'display_mentor_dashboard' )
-            );
-        }
-
-        // Mentee dashboard (for mentees only)
-        if ( current_user_can( 'bm_book_services' ) ) {
-            add_submenu_page(
-                'booking-master',
-                'My Bookings',
-                'My Bookings',
-                'bm_book_services',
-                'booking-master-mentee',
-                array( $this, 'display_mentee_dashboard' )
-            );
-        }
     }
 
     /**
@@ -255,24 +231,6 @@ class Booking_Master_Admin {
     }
 
     /**
-     * Display mentor dashboard
-     *
-     * @since    1.0.0
-     */
-    public function display_mentor_dashboard() {
-        include_once plugin_dir_path( __FILE__ ) . 'partials/mentor-dashboard.php';
-    }
-
-    /**
-     * Display mentee dashboard
-     *
-     * @since    1.0.0
-     */
-    public function display_mentee_dashboard() {
-        include_once plugin_dir_path( __FILE__ ) . 'partials/mentee-dashboard.php';
-    }
-
-    /**
      * Display reports page
      *
      * @since    1.0.0
@@ -308,60 +266,137 @@ class Booking_Master_Admin {
         $settings = get_option( 'booking_master_settings', array() );
         
         // Basic settings
-        $settings['currency'] = sanitize_text_field( $_POST['currency'] );
-        $settings['currency_symbol'] = sanitize_text_field( $_POST['currency_symbol'] );
-        $settings['time_slot_duration'] = intval( $_POST['time_slot_duration'] );
-        $settings['booking_buffer_time'] = intval( $_POST['booking_buffer_time'] );
-        $settings['booking_lead_time'] = intval( $_POST['booking_lead_time'] );
-        $settings['max_advance_booking'] = intval( $_POST['max_advance_booking'] );
+        if ( isset( $_POST['currency_symbol'] ) ) {
+            $settings['currency_symbol'] = sanitize_text_field( $_POST['currency_symbol'] );
+        }
+        if ( isset( $_POST['currency_position'] ) ) {
+            $settings['currency_position'] = sanitize_text_field( $_POST['currency_position'] );
+        }
+        if ( isset( $_POST['timezone'] ) ) {
+            $settings['timezone'] = sanitize_text_field( $_POST['timezone'] );
+        }
+        if ( isset( $_POST['booking_buffer_time'] ) ) {
+            $settings['booking_buffer_time'] = intval( $_POST['booking_buffer_time'] );
+        }
+        if ( isset( $_POST['advance_booking_days'] ) ) {
+            $settings['advance_booking_days'] = intval( $_POST['advance_booking_days'] );
+        }
+        if ( isset( $_POST['auto_approve_bookings'] ) ) {
+            $settings['auto_approve_bookings'] = true;
+        } else {
+            $settings['auto_approve_bookings'] = false;
+        }
+        if ( isset( $_POST['cancellation_policy'] ) ) {
+            $settings['cancellation_policy'] = sanitize_textarea_field( $_POST['cancellation_policy'] );
+        }
+        if ( isset( $_POST['terms_of_service'] ) ) {
+            $settings['terms_of_service'] = sanitize_url( $_POST['terms_of_service'] );
+        }
+        if ( isset( $_POST['privacy_policy'] ) ) {
+            $settings['privacy_policy'] = sanitize_url( $_POST['privacy_policy'] );
+        }
         
-        // Zoom settings
-        $settings['zoom_enabled'] = isset( $_POST['zoom_enabled'] ) ? true : false;
-        $settings['zoom_api_key'] = sanitize_text_field( $_POST['zoom_api_key'] );
-        $settings['zoom_api_secret'] = sanitize_text_field( $_POST['zoom_api_secret'] );
-        $settings['zoom_oauth_client_id'] = sanitize_text_field( $_POST['zoom_oauth_client_id'] );
-        $settings['zoom_oauth_client_secret'] = sanitize_text_field( $_POST['zoom_oauth_client_secret'] );
-        
-        // Payment settings
-        $settings['payment_enabled'] = isset( $_POST['payment_enabled'] ) ? true : false;
-        $settings['stripe_enabled'] = isset( $_POST['stripe_enabled'] ) ? true : false;
-        $settings['stripe_publishable_key'] = sanitize_text_field( $_POST['stripe_publishable_key'] );
-        $settings['stripe_secret_key'] = sanitize_text_field( $_POST['stripe_secret_key'] );
-        $settings['paypal_enabled'] = isset( $_POST['paypal_enabled'] ) ? true : false;
-        $settings['paypal_client_id'] = sanitize_text_field( $_POST['paypal_client_id'] );
-        $settings['paypal_client_secret'] = sanitize_text_field( $_POST['paypal_client_secret'] );
-        $settings['paypal_sandbox'] = isset( $_POST['paypal_sandbox'] ) ? true : false;
-        
-        // Email settings
-        $settings['email_notifications'] = isset( $_POST['email_notifications'] ) ? true : false;
-        $settings['booking_confirmation_email'] = isset( $_POST['booking_confirmation_email'] ) ? true : false;
-        $settings['booking_reminder_email'] = isset( $_POST['booking_reminder_email'] ) ? true : false;
-        $settings['booking_cancellation_email'] = isset( $_POST['booking_cancellation_email'] ) ? true : false;
-        $settings['payment_confirmation_email'] = isset( $_POST['payment_confirmation_email'] ) ? true : false;
-        $settings['reminder_24h_enabled'] = isset( $_POST['reminder_24h_enabled'] ) ? true : false;
-        $settings['reminder_1h_enabled'] = isset( $_POST['reminder_1h_enabled'] ) ? true : false;
-        $settings['follow_up_email_enabled'] = isset( $_POST['follow_up_email_enabled'] ) ? true : false;
+        // Fees and taxes
+        if ( isset( $_POST['management_fee_enabled'] ) ) {
+            $settings['management_fee_enabled'] = true;
+        } else {
+            $settings['management_fee_enabled'] = false;
+        }
+        if ( isset( $_POST['management_fee_rate'] ) ) {
+            $settings['management_fee_rate'] = floatval( $_POST['management_fee_rate'] );
+        }
+        if ( isset( $_POST['management_fee_description'] ) ) {
+            $settings['management_fee_description'] = sanitize_text_field( $_POST['management_fee_description'] );
+        }
+        if ( isset( $_POST['tax_enabled'] ) ) {
+            $settings['tax_enabled'] = true;
+        } else {
+            $settings['tax_enabled'] = false;
+        }
+        if ( isset( $_POST['tax_rate'] ) ) {
+            $settings['tax_rate'] = floatval( $_POST['tax_rate'] );
+        }
+        if ( isset( $_POST['tax_description'] ) ) {
+            $settings['tax_description'] = sanitize_text_field( $_POST['tax_description'] );
+        }
+        if ( isset( $_POST['tax_handling'] ) ) {
+            $settings['tax_handling'] = sanitize_text_field( $_POST['tax_handling'] );
+        }
+        if ( isset( $_POST['pricing_display'] ) ) {
+            $settings['pricing_display'] = sanitize_text_field( $_POST['pricing_display'] );
+        }
         
         // Calendar sync settings
-        $settings['calendar_sync_enabled'] = isset( $_POST['calendar_sync_enabled'] ) ? true : false;
-        $settings['google_calendar_enabled'] = isset( $_POST['google_calendar_enabled'] ) ? true : false;
-        $settings['google_client_id'] = sanitize_text_field( $_POST['google_client_id'] );
-        $settings['google_client_secret'] = sanitize_text_field( $_POST['google_client_secret'] );
-        $settings['outlook_calendar_enabled'] = isset( $_POST['outlook_calendar_enabled'] ) ? true : false;
-        $settings['outlook_client_id'] = sanitize_text_field( $_POST['outlook_client_id'] );
-        $settings['outlook_client_secret'] = sanitize_text_field( $_POST['outlook_client_secret'] );
+        if ( isset( $_POST['calendar_sync_enabled'] ) ) {
+            $settings['calendar_sync_enabled'] = true;
+        } else {
+            $settings['calendar_sync_enabled'] = false;
+        }
+        if ( isset( $_POST['google_calendar_enabled'] ) ) {
+            $settings['google_calendar_enabled'] = true;
+        } else {
+            $settings['google_calendar_enabled'] = false;
+        }
+        if ( isset( $_POST['google_client_id'] ) ) {
+            $settings['google_client_id'] = sanitize_text_field( $_POST['google_client_id'] );
+        }
+        if ( isset( $_POST['google_client_secret'] ) ) {
+            $settings['google_client_secret'] = sanitize_text_field( $_POST['google_client_secret'] );
+        }
+        if ( isset( $_POST['outlook_calendar_enabled'] ) ) {
+            $settings['outlook_calendar_enabled'] = true;
+        } else {
+            $settings['outlook_calendar_enabled'] = false;
+        }
+        if ( isset( $_POST['outlook_client_id'] ) ) {
+            $settings['outlook_client_id'] = sanitize_text_field( $_POST['outlook_client_id'] );
+        }
+        if ( isset( $_POST['outlook_client_secret'] ) ) {
+            $settings['outlook_client_secret'] = sanitize_text_field( $_POST['outlook_client_secret'] );
+        }
         
-        // Booking settings
-        $settings['auto_approve_bookings'] = isset( $_POST['auto_approve_bookings'] ) ? true : false;
-        $settings['require_payment_for_booking'] = isset( $_POST['require_payment_for_booking'] ) ? true : false;
-        $settings['cancellation_policy'] = sanitize_text_field( $_POST['cancellation_policy'] );
-        $settings['cancellation_hours'] = intval( $_POST['cancellation_hours'] );
-        $settings['refund_policy'] = sanitize_text_field( $_POST['refund_policy'] );
+        // Zoom settings
+        if ( isset( $_POST['zoom_enabled'] ) ) {
+            $settings['zoom_enabled'] = true;
+        } else {
+            $settings['zoom_enabled'] = false;
+        }
+        if ( isset( $_POST['zoom_api_key'] ) ) {
+            $settings['zoom_api_key'] = sanitize_text_field( $_POST['zoom_api_key'] );
+        }
+        if ( isset( $_POST['zoom_api_secret'] ) ) {
+            $settings['zoom_api_secret'] = sanitize_text_field( $_POST['zoom_api_secret'] );
+        }
+        if ( isset( $_POST['zoom_oauth_client_id'] ) ) {
+            $settings['zoom_oauth_client_id'] = sanitize_text_field( $_POST['zoom_oauth_client_id'] );
+        }
+        if ( isset( $_POST['zoom_oauth_client_secret'] ) ) {
+            $settings['zoom_oauth_client_secret'] = sanitize_text_field( $_POST['zoom_oauth_client_secret'] );
+        }
         
-        // General settings
-        $settings['date_format'] = sanitize_text_field( $_POST['date_format'] );
-        $settings['time_format'] = sanitize_text_field( $_POST['time_format'] );
-        $settings['timezone'] = sanitize_text_field( $_POST['timezone'] );
+        // Marketplace settings
+        if ( isset( $_POST['marketplace_enabled'] ) ) {
+            $settings['marketplace_enabled'] = true;
+        } else {
+            $settings['marketplace_enabled'] = false;
+        }
+        if ( isset( $_POST['marketplace_application_fee'] ) ) {
+            $settings['marketplace_application_fee'] = floatval( $_POST['marketplace_application_fee'] );
+        }
+        if ( isset( $_POST['marketplace_payout_schedule'] ) ) {
+            $settings['marketplace_payout_schedule'] = sanitize_text_field( $_POST['marketplace_payout_schedule'] );
+        }
+        if ( isset( $_POST['marketplace_onboarding_redirect'] ) ) {
+            $settings['marketplace_onboarding_redirect'] = sanitize_url( $_POST['marketplace_onboarding_redirect'] );
+        }
+        if ( isset( $_POST['marketplace_account_requirements'] ) ) {
+            $settings['marketplace_account_requirements'] = sanitize_textarea_field( $_POST['marketplace_account_requirements'] );
+        }
+        if ( isset( $_POST['marketplace_auto_accept'] ) ) {
+            $settings['marketplace_auto_accept'] = true;
+        } else {
+            $settings['marketplace_auto_accept'] = false;
+        }
 
         update_option( 'booking_master_settings', $settings );
         

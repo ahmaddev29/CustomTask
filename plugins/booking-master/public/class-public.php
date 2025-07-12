@@ -765,8 +765,996 @@ class Booking_Master_Public {
      * @return   string
      */
     private function render_mentor_dashboard() {
-        // Implementation for mentor dashboard
-        return '<div class="bm-mentor-dashboard"><p>Welcome to your mentor dashboard! <a href="' . admin_url( 'admin.php?page=booking-master-mentor' ) . '">Visit full dashboard</a></p></div>';
+        global $wpdb;
+        $mentor_id = get_current_user_id();
+        
+        // Get mentor statistics
+        $services_table = $wpdb->prefix . 'bm_services';
+        $bookings_table = $wpdb->prefix . 'bm_bookings';
+        
+        $stats = array(
+            'total_services' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM $services_table WHERE mentor_id = %d AND status = 'active'",
+                $mentor_id
+            ) ),
+            'total_bookings' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM $bookings_table WHERE mentor_id = %d",
+                $mentor_id
+            ) ),
+            'upcoming_bookings' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM $bookings_table WHERE mentor_id = %d AND status = 'confirmed' AND booking_date > NOW()",
+                $mentor_id
+            ) ),
+            'completed_sessions' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM $bookings_table WHERE mentor_id = %d AND status = 'completed'",
+                $mentor_id
+            ) ),
+            'pending_bookings' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM $bookings_table WHERE mentor_id = %d AND status = 'pending'",
+                $mentor_id
+            ) ),
+            'monthly_earnings' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT SUM(total_amount) FROM $bookings_table 
+                 WHERE mentor_id = %d AND status IN ('confirmed', 'completed') 
+                 AND MONTH(created_at) = MONTH(CURRENT_DATE()) 
+                 AND YEAR(created_at) = YEAR(CURRENT_DATE())",
+                $mentor_id
+            ) ) ?? 0,
+        );
+        
+        // Get recent bookings
+        $recent_bookings = $wpdb->get_results( $wpdb->prepare(
+            "SELECT b.*, s.service_name, u.display_name as mentee_name 
+             FROM $bookings_table b 
+             LEFT JOIN $services_table s ON b.service_id = s.id 
+             LEFT JOIN {$wpdb->users} u ON b.mentee_id = u.ID 
+             WHERE b.mentor_id = %d 
+             ORDER BY b.booking_date DESC 
+             LIMIT 8",
+            $mentor_id
+        ) );
+        
+        // Get mentor services
+        $services = $wpdb->get_results( $wpdb->prepare(
+            "SELECT * FROM $services_table WHERE mentor_id = %d ORDER BY created_at DESC",
+            $mentor_id
+        ) );
+        
+        ob_start();
+        ?>
+        <div class="bm-mentor-dashboard">
+            <!-- Dashboard Header -->
+            <div class="bm-dashboard-header">
+                <div class="bm-dashboard-title">
+                    <h3>Mentor Dashboard</h3>
+                    <p>Manage your services and bookings</p>
+                </div>
+                <div class="bm-dashboard-actions">
+                    <button class="bm-button bm-button-primary" onclick="bmShowCreateService()">
+                        <i class="bm-icon-plus"></i>
+                        Create Service
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Dashboard Stats -->
+            <div class="bm-dashboard-stats">
+                <div class="bm-stat-card">
+                    <div class="bm-stat-icon">
+                        <i class="bm-icon-service"></i>
+                    </div>
+                    <div class="bm-stat-content">
+                        <h4><?php echo esc_html( $stats['total_services'] ); ?></h4>
+                        <p>Active Services</p>
+                    </div>
+                </div>
+                <div class="bm-stat-card">
+                    <div class="bm-stat-icon">
+                        <i class="bm-icon-calendar"></i>
+                    </div>
+                    <div class="bm-stat-content">
+                        <h4><?php echo esc_html( $stats['upcoming_bookings'] ); ?></h4>
+                        <p>Upcoming Sessions</p>
+                    </div>
+                </div>
+                <div class="bm-stat-card">
+                    <div class="bm-stat-icon">
+                        <i class="bm-icon-clock"></i>
+                    </div>
+                    <div class="bm-stat-content">
+                        <h4><?php echo esc_html( $stats['pending_bookings'] ); ?></h4>
+                        <p>Pending Approval</p>
+                    </div>
+                </div>
+                <div class="bm-stat-card">
+                    <div class="bm-stat-icon">
+                        <i class="bm-icon-dollar"></i>
+                    </div>
+                    <div class="bm-stat-content">
+                        <h4><?php echo esc_html( get_option( 'booking_master_settings', array() )['currency_symbol'] ?? '$' ); ?><?php echo esc_html( number_format( $stats['monthly_earnings'], 2 ) ); ?></h4>
+                        <p>This Month</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Navigation -->
+            <div class="bm-dashboard-nav">
+                <button class="bm-nav-tab active" data-tab="overview">Overview</button>
+                <button class="bm-nav-tab" data-tab="services">My Services</button>
+                <button class="bm-nav-tab" data-tab="bookings">Bookings</button>
+                <button class="bm-nav-tab" data-tab="availability">Availability</button>
+                <button class="bm-nav-tab" data-tab="earnings">Earnings</button>
+                <button class="bm-nav-tab" data-tab="profile">Profile</button>
+            </div>
+            
+            <!-- Overview Tab -->
+            <div class="bm-dashboard-tab active" id="bm-tab-overview">
+                <div class="bm-dashboard-grid">
+                    <div class="bm-dashboard-section">
+                        <h4>Recent Bookings</h4>
+                        <?php if ( $recent_bookings ) : ?>
+                        <div class="bm-bookings-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Service</th>
+                                        <th>Mentee</th>
+                                        <th>Date & Time</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ( $recent_bookings as $booking ) : ?>
+                                    <tr>
+                                        <td><?php echo esc_html( $booking->service_name ); ?></td>
+                                        <td><?php echo esc_html( $booking->mentee_name ); ?></td>
+                                        <td><?php echo esc_html( date( 'M j, Y g:i A', strtotime( $booking->booking_date ) ) ); ?></td>
+                                        <td>
+                                            <span class="bm-status <?php echo esc_attr( $booking->status ); ?>">
+                                                <?php echo esc_html( ucfirst( $booking->status ) ); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="bm-action-buttons">
+                                                <?php if ( $booking->status === 'pending' ) : ?>
+                                                <button class="bm-button bm-button-small bm-button-success" onclick="bmApproveBooking(<?php echo $booking->id; ?>)">
+                                                    Approve
+                                                </button>
+                                                <button class="bm-button bm-button-small bm-button-danger" onclick="bmRejectBooking(<?php echo $booking->id; ?>)">
+                                                    Reject
+                                                </button>
+                                                <?php else : ?>
+                                                <button class="bm-button bm-button-small" onclick="bmViewBooking(<?php echo $booking->id; ?>)">
+                                                    View
+                                                </button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <?php else : ?>
+                        <p>No bookings yet. <a href="#" onclick="bmShowCreateService()">Create your first service</a> to start receiving bookings!</p>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="bm-dashboard-section">
+                        <h4>Quick Actions</h4>
+                        <div class="bm-quick-actions">
+                            <button class="bm-action-item" onclick="bmShowCreateService()">
+                                <i class="bm-icon-plus"></i>
+                                <span>Create New Service</span>
+                            </button>
+                            <button class="bm-action-item" onclick="bmShowTab('availability')">
+                                <i class="bm-icon-calendar"></i>
+                                <span>Set Availability</span>
+                            </button>
+                            <button class="bm-action-item" onclick="bmShowTab('earnings')">
+                                <i class="bm-icon-chart"></i>
+                                <span>View Earnings</span>
+                            </button>
+                            <button class="bm-action-item" onclick="bmShowTab('profile')">
+                                <i class="bm-icon-user"></i>
+                                <span>Update Profile</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Services Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-services">
+                <div class="bm-section-header">
+                    <h4>My Services</h4>
+                    <button class="bm-button bm-button-primary" onclick="bmShowCreateService()">
+                        <i class="bm-icon-plus"></i>
+                        Add Service
+                    </button>
+                </div>
+                
+                <?php if ( $services ) : ?>
+                <div class="bm-services-grid">
+                    <?php foreach ( $services as $service ) : ?>
+                    <div class="bm-service-card">
+                        <div class="bm-service-header">
+                            <h5><?php echo esc_html( $service->service_name ); ?></h5>
+                            <div class="bm-service-status">
+                                <span class="bm-status <?php echo esc_attr( $service->status ); ?>">
+                                    <?php echo esc_html( ucfirst( $service->status ) ); ?>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="bm-service-details">
+                            <p class="bm-service-description"><?php echo esc_html( wp_trim_words( $service->description, 15 ) ); ?></p>
+                            <div class="bm-service-meta">
+                                <span class="bm-price">
+                                    <?php echo esc_html( get_option( 'booking_master_settings', array() )['currency_symbol'] ?? '$' ); ?><?php echo esc_html( number_format( $service->price, 2 ) ); ?>
+                                </span>
+                                <span class="bm-duration"><?php echo esc_html( $service->duration ); ?> min</span>
+                            </div>
+                        </div>
+                        <div class="bm-service-actions">
+                            <button class="bm-button bm-button-small" onclick="bmEditService(<?php echo $service->id; ?>)">
+                                Edit
+                            </button>
+                            <button class="bm-button bm-button-small bm-button-secondary" onclick="bmDuplicateService(<?php echo $service->id; ?>)">
+                                Duplicate
+                            </button>
+                            <button class="bm-button bm-button-small bm-button-danger" onclick="bmDeleteService(<?php echo $service->id; ?>)">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php else : ?>
+                <div class="bm-empty-state">
+                    <div class="bm-empty-icon">
+                        <i class="bm-icon-service"></i>
+                    </div>
+                    <h5>No Services Created Yet</h5>
+                    <p>Create your first service to start offering mentoring sessions.</p>
+                    <button class="bm-button bm-button-primary" onclick="bmShowCreateService()">
+                        Create Your First Service
+                    </button>
+                </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- Bookings Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-bookings">
+                <div class="bm-section-header">
+                    <h4>All Bookings</h4>
+                    <div class="bm-filters">
+                        <select id="bm-booking-status-filter">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <input type="date" id="bm-booking-date-filter" placeholder="Filter by date">
+                    </div>
+                </div>
+                
+                <div id="bm-bookings-container">
+                    <!-- Bookings will be loaded here via AJAX -->
+                </div>
+            </div>
+            
+            <!-- Availability Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-availability">
+                <div class="bm-section-header">
+                    <h4>Set Your Availability</h4>
+                    <p>Define when you're available for mentoring sessions</p>
+                </div>
+                
+                <div id="bm-availability-manager">
+                    <!-- Availability manager will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Earnings Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-earnings">
+                <div class="bm-section-header">
+                    <h4>Earnings & Payouts</h4>
+                </div>
+                
+                <div id="bm-earnings-dashboard">
+                    <!-- Earnings dashboard will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Profile Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-profile">
+                <div class="bm-section-header">
+                    <h4>Mentor Profile</h4>
+                    <p>Update your profile information and preferences</p>
+                </div>
+                
+                <div id="bm-profile-form">
+                    <!-- Profile form will be loaded here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Create/Edit Service Modal -->
+        <div id="bm-service-modal" class="bm-modal" style="display: none;">
+            <div class="bm-modal-content">
+                <div class="bm-modal-header">
+                    <h3 id="bm-service-modal-title">Create New Service</h3>
+                    <button class="bm-modal-close" onclick="bmCloseServiceModal()">
+                        <i class="bm-icon-close"></i>
+                    </button>
+                </div>
+                <div class="bm-modal-body">
+                    <form id="bm-service-form">
+                        <input type="hidden" id="bm-service-id" name="service_id">
+                        
+                        <div class="bm-form-group">
+                            <label for="bm-service-name">Service Name *</label>
+                            <input type="text" id="bm-service-name" name="service_name" required>
+                        </div>
+                        
+                        <div class="bm-form-group">
+                            <label for="bm-service-description">Description *</label>
+                            <textarea id="bm-service-description" name="description" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="bm-form-row">
+                            <div class="bm-form-group">
+                                <label for="bm-service-price">Price *</label>
+                                <div class="bm-input-with-symbol">
+                                    <span class="bm-currency-symbol"><?php echo esc_html( get_option( 'booking_master_settings', array() )['currency_symbol'] ?? '$' ); ?></span>
+                                    <input type="number" id="bm-service-price" name="price" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="bm-form-group">
+                                <label for="bm-service-duration">Duration (minutes) *</label>
+                                <select id="bm-service-duration" name="duration" required>
+                                    <option value="30">30 minutes</option>
+                                    <option value="45">45 minutes</option>
+                                    <option value="60">60 minutes</option>
+                                    <option value="90">90 minutes</option>
+                                    <option value="120">120 minutes</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="bm-form-group">
+                            <label for="bm-service-category">Category</label>
+                            <select id="bm-service-category" name="category">
+                                <option value="">Select Category</option>
+                                <option value="business">Business</option>
+                                <option value="technology">Technology</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="design">Design</option>
+                                <option value="personal-development">Personal Development</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="bm-form-group">
+                            <label>
+                                <input type="checkbox" id="bm-service-zoom" name="zoom_enabled" value="1">
+                                Enable Zoom for this service
+                            </label>
+                        </div>
+                        
+                        <div class="bm-form-group">
+                            <label for="bm-service-status">Status</label>
+                            <select id="bm-service-status" name="status">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="bm-modal-footer">
+                    <button class="bm-button bm-button-secondary" onclick="bmCloseServiceModal()">Cancel</button>
+                    <button class="bm-button bm-button-primary" onclick="bmSaveService()">Save Service</button>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        // Dashboard functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            bmInitializeMentorDashboard();
+        });
+        
+        function bmInitializeMentorDashboard() {
+            // Tab navigation
+            const tabs = document.querySelectorAll('.bm-nav-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    bmShowTab(tabId);
+                });
+            });
+            
+            // Load initial content
+            bmLoadBookings();
+        }
+        
+        function bmShowTab(tabId) {
+            // Remove active class from all tabs and tab contents
+            document.querySelectorAll('.bm-nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.bm-dashboard-tab').forEach(tab => tab.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            document.getElementById(`bm-tab-${tabId}`).classList.add('active');
+            
+            // Load content based on tab
+            switch(tabId) {
+                case 'bookings':
+                    bmLoadBookings();
+                    break;
+                case 'availability':
+                    bmLoadAvailability();
+                    break;
+                case 'earnings':
+                    bmLoadEarnings();
+                    break;
+                case 'profile':
+                    bmLoadProfile();
+                    break;
+            }
+        }
+        
+        function bmShowCreateService() {
+            document.getElementById('bm-service-modal-title').textContent = 'Create New Service';
+            document.getElementById('bm-service-form').reset();
+            document.getElementById('bm-service-id').value = '';
+            document.getElementById('bm-service-modal').style.display = 'flex';
+        }
+        
+        function bmCloseServiceModal() {
+            document.getElementById('bm-service-modal').style.display = 'none';
+        }
+        
+        function bmSaveService() {
+            const form = document.getElementById('bm-service-form');
+            const formData = new FormData(form);
+            formData.append('action', 'bm_save_service');
+            formData.append('nonce', '<?php echo wp_create_nonce( 'bm_mentor_nonce' ); ?>');
+            
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bmCloseServiceModal();
+                    location.reload(); // Reload to show updated services
+                } else {
+                    alert('Error: ' + data.data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving the service.');
+            });
+        }
+        
+        function bmLoadBookings() {
+            // Load bookings via AJAX
+            // Implementation will be added
+        }
+        
+        function bmLoadAvailability() {
+            // Load availability manager
+            // Implementation will be added
+        }
+        
+        function bmLoadEarnings() {
+            // Load earnings dashboard
+            // Implementation will be added
+        }
+        
+        function bmLoadProfile() {
+            // Load profile form
+            // Implementation will be added
+        }
+        
+        function bmApproveBooking(bookingId) {
+            if (confirm('Are you sure you want to approve this booking?')) {
+                // AJAX call to approve booking
+                // Implementation will be added
+            }
+        }
+        
+        function bmRejectBooking(bookingId) {
+            if (confirm('Are you sure you want to reject this booking?')) {
+                // AJAX call to reject booking
+                // Implementation will be added
+            }
+        }
+        
+        function bmViewBooking(bookingId) {
+            // Show booking details modal
+            // Implementation will be added
+        }
+        
+        function bmEditService(serviceId) {
+            // Load service data and show edit modal
+            // Implementation will be added
+        }
+        
+        function bmDuplicateService(serviceId) {
+            // Duplicate service
+            // Implementation will be added
+        }
+        
+        function bmDeleteService(serviceId) {
+            if (confirm('Are you sure you want to delete this service?')) {
+                // AJAX call to delete service
+                // Implementation will be added
+            }
+        }
+        </script>
+        
+        <style>
+        .bm-mentor-dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .bm-dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .bm-dashboard-title h3 {
+            margin: 0;
+            font-size: 28px;
+            color: #333;
+        }
+        
+        .bm-dashboard-title p {
+            margin: 5px 0 0;
+            color: #666;
+        }
+        
+        .bm-dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .bm-stat-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .bm-stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #0073aa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .bm-stat-content h4 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .bm-stat-content p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .bm-dashboard-nav {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 30px;
+            background: #f5f5f5;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        
+        .bm-nav-tab {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+        
+        .bm-nav-tab:hover {
+            background: #e0e0e0;
+        }
+        
+        .bm-nav-tab.active {
+            background: #0073aa;
+            color: white;
+        }
+        
+        .bm-dashboard-tab {
+            display: none;
+        }
+        
+        .bm-dashboard-tab.active {
+            display: block;
+        }
+        
+        .bm-dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+        
+        .bm-dashboard-section {
+            background: #fff;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .bm-dashboard-section h4 {
+            margin: 0 0 20px;
+            color: #333;
+        }
+        
+        .bm-bookings-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .bm-bookings-table th,
+        .bm-bookings-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .bm-bookings-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .bm-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .bm-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .bm-status.confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .bm-status.completed {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .bm-status.cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .bm-action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .bm-quick-actions {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .bm-action-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .bm-action-item:hover {
+            background: #e9ecef;
+            border-color: #0073aa;
+        }
+        
+        .bm-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .bm-services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .bm-service-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+        }
+        
+        .bm-service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .bm-service-header h5 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .bm-service-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .bm-service-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .bm-price {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0073aa;
+        }
+        
+        .bm-duration {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .bm-service-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .bm-empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .bm-empty-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+        
+        .bm-empty-state h5 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .bm-filters {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .bm-button {
+            background: #0073aa;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .bm-button:hover {
+            background: #005a87;
+        }
+        
+        .bm-button-secondary {
+            background: #6c757d;
+        }
+        
+        .bm-button-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .bm-button-success {
+            background: #28a745;
+        }
+        
+        .bm-button-success:hover {
+            background: #218838;
+        }
+        
+        .bm-button-danger {
+            background: #dc3545;
+        }
+        
+        .bm-button-danger:hover {
+            background: #c82333;
+        }
+        
+        .bm-button-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .bm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .bm-modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .bm-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .bm-modal-header h3 {
+            margin: 0;
+        }
+        
+        .bm-modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+        }
+        
+        .bm-modal-body {
+            padding: 20px;
+        }
+        
+        .bm-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .bm-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .bm-form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .bm-form-group input,
+        .bm-form-group select,
+        .bm-form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .bm-form-group textarea {
+            resize: vertical;
+        }
+        
+        .bm-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .bm-input-with-symbol {
+            position: relative;
+        }
+        
+        .bm-currency-symbol {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+        
+        .bm-input-with-symbol input {
+            padding-left: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .bm-dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .bm-dashboard-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .bm-dashboard-nav {
+                flex-wrap: wrap;
+            }
+            
+            .bm-nav-tab {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            
+            .bm-services-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .bm-form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        </style>
+        <?php
+        return ob_get_clean();
     }
 
     /**
@@ -796,16 +1784,32 @@ class Booking_Master_Public {
                 "SELECT COUNT(*) FROM $bookings_table WHERE mentee_id = %d AND status = 'completed'",
                 $mentee_id
             ) ),
+            'total_spent' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT SUM(total_amount) FROM $bookings_table WHERE mentee_id = %d AND status IN ('confirmed', 'completed')",
+                $mentee_id
+            ) ) ?? 0,
         );
         
         // Get recent bookings
         $recent_bookings = $wpdb->get_results( $wpdb->prepare(
-            "SELECT b.*, s.service_name, u.display_name as mentor_name 
+            "SELECT b.*, s.service_name, u.display_name as mentor_name, u.user_email as mentor_email
              FROM $bookings_table b 
              LEFT JOIN $services_table s ON b.service_id = s.id 
              LEFT JOIN {$wpdb->users} u ON b.mentor_id = u.ID 
              WHERE b.mentee_id = %d 
              ORDER BY b.booking_date DESC 
+             LIMIT 10",
+            $mentee_id
+        ) );
+        
+        // Get upcoming sessions
+        $upcoming_sessions = $wpdb->get_results( $wpdb->prepare(
+            "SELECT b.*, s.service_name, u.display_name as mentor_name, u.user_email as mentor_email
+             FROM $bookings_table b 
+             LEFT JOIN $services_table s ON b.service_id = s.id 
+             LEFT JOIN {$wpdb->users} u ON b.mentor_id = u.ID 
+             WHERE b.mentee_id = %d AND b.status = 'confirmed' AND b.booking_date > NOW() 
+             ORDER BY b.booking_date ASC 
              LIMIT 5",
             $mentee_id
         ) );
@@ -813,56 +1817,916 @@ class Booking_Master_Public {
         ob_start();
         ?>
         <div class="bm-mentee-dashboard">
+            <!-- Dashboard Header -->
+            <div class="bm-dashboard-header">
+                <div class="bm-dashboard-title">
+                    <h3>My Learning Dashboard</h3>
+                    <p>Track your mentoring sessions and progress</p>
+                </div>
+                <div class="bm-dashboard-actions">
+                    <a href="<?php echo home_url( '/services' ); ?>" class="bm-button bm-button-primary">
+                        <i class="bm-icon-search"></i>
+                        Browse Services
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Dashboard Stats -->
             <div class="bm-dashboard-stats">
-                <div class="bm-stat-item">
-                    <h4><?php echo esc_html( $stats['total_bookings'] ); ?></h4>
-                    <p>Total Sessions</p>
+                <div class="bm-stat-card">
+                    <div class="bm-stat-icon">
+                        <i class="bm-icon-calendar"></i>
+                    </div>
+                    <div class="bm-stat-content">
+                        <h4><?php echo esc_html( $stats['total_bookings'] ); ?></h4>
+                        <p>Total Sessions</p>
+                    </div>
                 </div>
-                <div class="bm-stat-item">
-                    <h4><?php echo esc_html( $stats['upcoming_bookings'] ); ?></h4>
-                    <p>Upcoming</p>
+                <div class="bm-stat-card">
+                    <div class="bm-stat-icon">
+                        <i class="bm-icon-clock"></i>
+                    </div>
+                    <div class="bm-stat-content">
+                        <h4><?php echo esc_html( $stats['upcoming_bookings'] ); ?></h4>
+                        <p>Upcoming Sessions</p>
+                    </div>
                 </div>
-                <div class="bm-stat-item">
-                    <h4><?php echo esc_html( $stats['completed_sessions'] ); ?></h4>
-                    <p>Completed</p>
+                <div class="bm-stat-card">
+                    <div class="bm-stat-icon">
+                        <i class="bm-icon-check-circle"></i>
+                    </div>
+                    <div class="bm-stat-content">
+                        <h4><?php echo esc_html( $stats['completed_sessions'] ); ?></h4>
+                        <p>Completed</p>
+                    </div>
+                </div>
+                <div class="bm-stat-card">
+                    <div class="bm-stat-icon">
+                        <i class="bm-icon-dollar"></i>
+                    </div>
+                    <div class="bm-stat-content">
+                        <h4><?php echo esc_html( get_option( 'booking_master_settings', array() )['currency_symbol'] ?? '$' ); ?><?php echo esc_html( number_format( $stats['total_spent'], 2 ) ); ?></h4>
+                        <p>Total Invested</p>
+                    </div>
                 </div>
             </div>
             
-            <div class="bm-dashboard-actions">
-                <a href="<?php echo admin_url( 'admin.php?page=booking-master-mentee' ); ?>" class="bm-button bm-button-primary">
-                    Visit Full Dashboard
-                </a>
-                <a href="<?php echo home_url( '/services' ); ?>" class="bm-button bm-button-secondary">
-                    Browse Services
-                </a>
+            <!-- Dashboard Navigation -->
+            <div class="bm-dashboard-nav">
+                <button class="bm-nav-tab active" data-tab="overview">Overview</button>
+                <button class="bm-nav-tab" data-tab="sessions">My Sessions</button>
+                <button class="bm-nav-tab" data-tab="history">History</button>
+                <button class="bm-nav-tab" data-tab="favorites">Favorites</button>
+                <button class="bm-nav-tab" data-tab="profile">Profile</button>
             </div>
             
-            <?php if ( $recent_bookings ) : ?>
-            <div class="bm-recent-bookings">
-                <h4>Recent Bookings</h4>
-                <div class="bm-bookings-list">
-                    <?php foreach ( $recent_bookings as $booking ) : ?>
-                    <div class="bm-booking-item">
-                        <div class="bm-booking-info">
-                            <h5><?php echo esc_html( $booking->service_name ); ?></h5>
-                            <p>with <?php echo esc_html( $booking->mentor_name ); ?></p>
-                            <p><?php echo esc_html( date( 'M j, Y g:i A', strtotime( $booking->booking_date ) ) ); ?></p>
+            <!-- Overview Tab -->
+            <div class="bm-dashboard-tab active" id="bm-tab-overview">
+                <div class="bm-dashboard-grid">
+                    <div class="bm-dashboard-section">
+                        <h4>Upcoming Sessions</h4>
+                        <?php if ( $upcoming_sessions ) : ?>
+                        <div class="bm-upcoming-sessions">
+                            <?php foreach ( $upcoming_sessions as $session ) : ?>
+                            <div class="bm-session-card">
+                                <div class="bm-session-info">
+                                    <h5><?php echo esc_html( $session->service_name ); ?></h5>
+                                    <p class="bm-session-mentor">with <?php echo esc_html( $session->mentor_name ); ?></p>
+                                    <p class="bm-session-date">
+                                        <i class="bm-icon-calendar"></i>
+                                        <?php echo esc_html( date( 'M j, Y', strtotime( $session->booking_date ) ) ); ?>
+                                    </p>
+                                    <p class="bm-session-time">
+                                        <i class="bm-icon-clock"></i>
+                                        <?php echo esc_html( date( 'g:i A', strtotime( $session->booking_date ) ) ); ?>
+                                    </p>
+                                </div>
+                                <div class="bm-session-actions">
+                                    <button class="bm-button bm-button-small" onclick="bmViewSession(<?php echo $session->id; ?>)">
+                                        View Details
+                                    </button>
+                                    <?php if ( $session->zoom_meeting_url ) : ?>
+                                    <a href="<?php echo esc_url( $session->zoom_meeting_url ); ?>" class="bm-button bm-button-small bm-button-success" target="_blank">
+                                        Join Session
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
                         </div>
-                        <div class="bm-booking-status">
-                            <span class="bm-status <?php echo esc_attr( $booking->status ); ?>">
-                                <?php echo esc_html( ucfirst( $booking->status ) ); ?>
-                            </span>
+                        <?php else : ?>
+                        <div class="bm-empty-state-small">
+                            <p>No upcoming sessions. <a href="<?php echo home_url( '/services' ); ?>">Book your next session</a>!</p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="bm-dashboard-section">
+                        <h4>Quick Actions</h4>
+                        <div class="bm-quick-actions">
+                            <a href="<?php echo home_url( '/services' ); ?>" class="bm-action-item">
+                                <i class="bm-icon-search"></i>
+                                <span>Browse Services</span>
+                            </a>
+                            <button class="bm-action-item" onclick="bmShowTab('sessions')">
+                                <i class="bm-icon-calendar"></i>
+                                <span>View All Sessions</span>
+                            </button>
+                            <button class="bm-action-item" onclick="bmShowTab('history')">
+                                <i class="bm-icon-history"></i>
+                                <span>Session History</span>
+                            </button>
+                            <button class="bm-action-item" onclick="bmShowTab('profile')">
+                                <i class="bm-icon-user"></i>
+                                <span>Update Profile</span>
+                            </button>
+                        </div>
+                        
+                        <div class="bm-progress-section">
+                            <h5>Learning Progress</h5>
+                            <div class="bm-progress-item">
+                                <span>Sessions Completed</span>
+                                <div class="bm-progress-bar">
+                                    <div class="bm-progress-fill" style="width: <?php echo $stats['total_bookings'] > 0 ? ($stats['completed_sessions'] / $stats['total_bookings'] * 100) : 0; ?>%"></div>
+                                </div>
+                                <span><?php echo esc_html( $stats['completed_sessions'] ); ?> / <?php echo esc_html( $stats['total_bookings'] ); ?></span>
+                            </div>
                         </div>
                     </div>
-                    <?php endforeach; ?>
                 </div>
             </div>
-            <?php else : ?>
-            <div class="bm-no-bookings">
-                <p>You haven't booked any sessions yet. <a href="<?php echo home_url( '/services' ); ?>">Browse available services</a> to get started!</p>
+            
+            <!-- Sessions Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-sessions">
+                <div class="bm-section-header">
+                    <h4>My Sessions</h4>
+                    <div class="bm-filters">
+                        <select id="bm-session-status-filter">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <input type="month" id="bm-session-month-filter" placeholder="Filter by month">
+                    </div>
+                </div>
+                
+                <div class="bm-sessions-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Mentor</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ( $recent_bookings as $booking ) : ?>
+                            <tr>
+                                <td><?php echo esc_html( $booking->service_name ); ?></td>
+                                <td><?php echo esc_html( $booking->mentor_name ); ?></td>
+                                <td><?php echo esc_html( date( 'M j, Y g:i A', strtotime( $booking->booking_date ) ) ); ?></td>
+                                <td>
+                                    <span class="bm-status <?php echo esc_attr( $booking->status ); ?>">
+                                        <?php echo esc_html( ucfirst( $booking->status ) ); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="bm-action-buttons">
+                                        <button class="bm-button bm-button-small" onclick="bmViewSession(<?php echo $booking->id; ?>)">
+                                            View
+                                        </button>
+                                        <?php if ( $booking->status === 'confirmed' && strtotime( $booking->booking_date ) > time() ) : ?>
+                                        <button class="bm-button bm-button-small bm-button-danger" onclick="bmCancelBooking(<?php echo $booking->id; ?>)">
+                                            Cancel
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if ( $booking->status === 'completed' ) : ?>
+                                        <button class="bm-button bm-button-small bm-button-secondary" onclick="bmRateSession(<?php echo $booking->id; ?>)">
+                                            Rate
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <?php endif; ?>
+            
+            <!-- History Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-history">
+                <div class="bm-section-header">
+                    <h4>Session History</h4>
+                    <p>Review your past mentoring sessions</p>
+                </div>
+                
+                <div id="bm-history-container">
+                    <!-- History will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Favorites Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-favorites">
+                <div class="bm-section-header">
+                    <h4>Favorite Mentors & Services</h4>
+                    <p>Quick access to your preferred mentors and services</p>
+                </div>
+                
+                <div id="bm-favorites-container">
+                    <!-- Favorites will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Profile Tab -->
+            <div class="bm-dashboard-tab" id="bm-tab-profile">
+                <div class="bm-section-header">
+                    <h4>My Profile</h4>
+                    <p>Update your profile information and preferences</p>
+                </div>
+                
+                <div id="bm-mentee-profile-form">
+                    <!-- Profile form will be loaded here -->
+                </div>
+            </div>
         </div>
+        
+        <!-- Session Details Modal -->
+        <div id="bm-session-modal" class="bm-modal" style="display: none;">
+            <div class="bm-modal-content">
+                <div class="bm-modal-header">
+                    <h3>Session Details</h3>
+                    <button class="bm-modal-close" onclick="bmCloseSessionModal()">
+                        <i class="bm-icon-close"></i>
+                    </button>
+                </div>
+                <div class="bm-modal-body">
+                    <div id="bm-session-details">
+                        <!-- Session details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rating Modal -->
+        <div id="bm-rating-modal" class="bm-modal" style="display: none;">
+            <div class="bm-modal-content">
+                <div class="bm-modal-header">
+                    <h3>Rate Your Session</h3>
+                    <button class="bm-modal-close" onclick="bmCloseRatingModal()">
+                        <i class="bm-icon-close"></i>
+                    </button>
+                </div>
+                <div class="bm-modal-body">
+                    <form id="bm-rating-form">
+                        <input type="hidden" id="bm-rating-booking-id" name="booking_id">
+                        
+                        <div class="bm-form-group">
+                            <label>How was your session?</label>
+                            <div class="bm-rating-stars">
+                                <span class="bm-star" data-rating="1">☆</span>
+                                <span class="bm-star" data-rating="2">☆</span>
+                                <span class="bm-star" data-rating="3">☆</span>
+                                <span class="bm-star" data-rating="4">☆</span>
+                                <span class="bm-star" data-rating="5">☆</span>
+                            </div>
+                            <input type="hidden" id="bm-rating-value" name="rating" value="5">
+                        </div>
+                        
+                        <div class="bm-form-group">
+                            <label for="bm-rating-comment">Share your feedback (optional)</label>
+                            <textarea id="bm-rating-comment" name="comment" rows="4" placeholder="What did you learn? How was the mentor?"></textarea>
+                        </div>
+                        
+                        <div class="bm-form-group">
+                            <label>
+                                <input type="checkbox" id="bm-rating-recommend" name="recommend" value="1" checked>
+                                I would recommend this mentor to others
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="bm-modal-footer">
+                    <button class="bm-button bm-button-secondary" onclick="bmCloseRatingModal()">Cancel</button>
+                    <button class="bm-button bm-button-primary" onclick="bmSubmitRating()">Submit Rating</button>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        // Dashboard functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            bmInitializeMenteeDashboard();
+        });
+        
+        function bmInitializeMenteeDashboard() {
+            // Tab navigation
+            const tabs = document.querySelectorAll('.bm-nav-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    bmShowTab(tabId);
+                });
+            });
+            
+            // Rating stars
+            const stars = document.querySelectorAll('.bm-star');
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = this.getAttribute('data-rating');
+                    bmSetRating(rating);
+                });
+            });
+        }
+        
+        function bmShowTab(tabId) {
+            // Remove active class from all tabs and tab contents
+            document.querySelectorAll('.bm-nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.bm-dashboard-tab').forEach(tab => tab.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            document.getElementById(`bm-tab-${tabId}`).classList.add('active');
+            
+            // Load content based on tab
+            switch(tabId) {
+                case 'history':
+                    bmLoadHistory();
+                    break;
+                case 'favorites':
+                    bmLoadFavorites();
+                    break;
+                case 'profile':
+                    bmLoadMenteeProfile();
+                    break;
+            }
+        }
+        
+        function bmViewSession(bookingId) {
+            // Show session details modal
+            document.getElementById('bm-session-modal').style.display = 'flex';
+            bmLoadSessionDetails(bookingId);
+        }
+        
+        function bmCloseSessionModal() {
+            document.getElementById('bm-session-modal').style.display = 'none';
+        }
+        
+        function bmCancelBooking(bookingId) {
+            if (confirm('Are you sure you want to cancel this booking?')) {
+                // AJAX call to cancel booking
+                fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=bm_cancel_booking&booking_id=${bookingId}&nonce=<?php echo wp_create_nonce( 'bm_mentee_nonce' ); ?>`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Booking cancelled successfully');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while cancelling the booking.');
+                });
+            }
+        }
+        
+        function bmRateSession(bookingId) {
+            document.getElementById('bm-rating-booking-id').value = bookingId;
+            document.getElementById('bm-rating-modal').style.display = 'flex';
+        }
+        
+        function bmCloseRatingModal() {
+            document.getElementById('bm-rating-modal').style.display = 'none';
+        }
+        
+        function bmSetRating(rating) {
+            document.getElementById('bm-rating-value').value = rating;
+            const stars = document.querySelectorAll('.bm-star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.textContent = '★';
+                    star.classList.add('active');
+                } else {
+                    star.textContent = '☆';
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        function bmSubmitRating() {
+            const form = document.getElementById('bm-rating-form');
+            const formData = new FormData(form);
+            formData.append('action', 'bm_submit_rating');
+            formData.append('nonce', '<?php echo wp_create_nonce( 'bm_mentee_nonce' ); ?>');
+            
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Thank you for your feedback!');
+                    bmCloseRatingModal();
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while submitting your rating.');
+            });
+        }
+        
+        function bmLoadSessionDetails(bookingId) {
+            // Load session details via AJAX
+            // Implementation will be added
+        }
+        
+        function bmLoadHistory() {
+            // Load session history
+            // Implementation will be added
+        }
+        
+        function bmLoadFavorites() {
+            // Load favorites
+            // Implementation will be added
+        }
+        
+        function bmLoadMenteeProfile() {
+            // Load mentee profile form
+            // Implementation will be added
+        }
+        </script>
+        
+        <style>
+        .bm-mentee-dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .bm-dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .bm-dashboard-title h3 {
+            margin: 0;
+            font-size: 28px;
+            color: #333;
+        }
+        
+        .bm-dashboard-title p {
+            margin: 5px 0 0;
+            color: #666;
+        }
+        
+        .bm-dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .bm-stat-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .bm-stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #0073aa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .bm-stat-content h4 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .bm-stat-content p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .bm-dashboard-nav {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 30px;
+            background: #f5f5f5;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        
+        .bm-nav-tab {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+        
+        .bm-nav-tab:hover {
+            background: #e0e0e0;
+        }
+        
+        .bm-nav-tab.active {
+            background: #0073aa;
+            color: white;
+        }
+        
+        .bm-dashboard-tab {
+            display: none;
+        }
+        
+        .bm-dashboard-tab.active {
+            display: block;
+        }
+        
+        .bm-dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+        
+        .bm-dashboard-section {
+            background: #fff;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .bm-dashboard-section h4 {
+            margin: 0 0 20px;
+            color: #333;
+        }
+        
+        .bm-upcoming-sessions {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .bm-session-card {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .bm-session-info h5 {
+            margin: 0 0 8px;
+            color: #333;
+        }
+        
+        .bm-session-mentor {
+            margin: 0 0 8px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .bm-session-date,
+        .bm-session-time {
+            margin: 0 0 4px;
+            color: #666;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .bm-session-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .bm-empty-state-small {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .bm-quick-actions {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .bm-action-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+        
+        .bm-action-item:hover {
+            background: #e9ecef;
+            border-color: #0073aa;
+        }
+        
+        .bm-progress-section h5 {
+            margin: 0 0 15px;
+            color: #333;
+        }
+        
+        .bm-progress-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .bm-progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .bm-progress-fill {
+            height: 100%;
+            background: #28a745;
+            transition: width 0.3s ease;
+        }
+        
+        .bm-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .bm-filters {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .bm-sessions-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .bm-sessions-table th,
+        .bm-sessions-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .bm-sessions-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .bm-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .bm-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .bm-status.confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .bm-status.completed {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .bm-status.cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .bm-action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .bm-rating-stars {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .bm-star {
+            font-size: 24px;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .bm-star:hover,
+        .bm-star.active {
+            color: #ffc107;
+        }
+        
+        .bm-button {
+            background: #0073aa;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .bm-button:hover {
+            background: #005a87;
+        }
+        
+        .bm-button-secondary {
+            background: #6c757d;
+        }
+        
+        .bm-button-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .bm-button-success {
+            background: #28a745;
+        }
+        
+        .bm-button-success:hover {
+            background: #218838;
+        }
+        
+        .bm-button-danger {
+            background: #dc3545;
+        }
+        
+        .bm-button-danger:hover {
+            background: #c82333;
+        }
+        
+        .bm-button-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .bm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .bm-modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .bm-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .bm-modal-header h3 {
+            margin: 0;
+        }
+        
+        .bm-modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+        }
+        
+        .bm-modal-body {
+            padding: 20px;
+        }
+        
+        .bm-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .bm-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .bm-form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .bm-form-group input,
+        .bm-form-group select,
+        .bm-form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .bm-form-group textarea {
+            resize: vertical;
+        }
+        
+        @media (max-width: 768px) {
+            .bm-dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .bm-dashboard-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .bm-dashboard-nav {
+                flex-wrap: wrap;
+            }
+            
+            .bm-nav-tab {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            
+            .bm-session-card {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .bm-sessions-table {
+                overflow-x: auto;
+            }
+        }
+        </style>
         <?php
         return ob_get_clean();
     }
