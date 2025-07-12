@@ -56,12 +56,15 @@ class Booking_Master_Activator {
             description text,
             price decimal(10,2) NOT NULL DEFAULT '0.00',
             duration int(11) NOT NULL DEFAULT '30',
+            category varchar(50),
             zoom_enabled tinyint(1) NOT NULL DEFAULT '0',
             status varchar(20) NOT NULL DEFAULT 'active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
-            KEY mentor_id (mentor_id)
+            KEY mentor_id (mentor_id),
+            KEY category (category),
+            KEY status (status)
         ) $charset_collate;";
         
         // Bookings table
@@ -121,7 +124,7 @@ class Booking_Master_Activator {
             mentor_id bigint(20) NOT NULL,
             date date NOT NULL,
             time_slot time NOT NULL,
-            status varchar(20) NOT NULL DEFAULT 'available',
+            is_available tinyint(1) NOT NULL DEFAULT '1',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -201,6 +204,26 @@ class Booking_Master_Activator {
             KEY payment_method (payment_method),
             KEY status (status)
         ) $charset_collate;";
+
+        // Ratings table
+        $table_ratings = $wpdb->prefix . 'bm_ratings';
+        $sql_ratings = "CREATE TABLE $table_ratings (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            booking_id mediumint(9) NOT NULL,
+            mentee_id bigint(20) NOT NULL,
+            mentor_id bigint(20) NOT NULL,
+            service_id mediumint(9) NOT NULL,
+            rating tinyint(1) NOT NULL DEFAULT '5',
+            comment text,
+            recommend tinyint(1) NOT NULL DEFAULT '1',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY booking_id (booking_id),
+            KEY mentee_id (mentee_id),
+            KEY mentor_id (mentor_id),
+            KEY service_id (service_id),
+            KEY rating (rating)
+        ) $charset_collate;";
         
         dbDelta( $sql_services );
         dbDelta( $sql_bookings );
@@ -210,6 +233,7 @@ class Booking_Master_Activator {
         dbDelta( $sql_calendar_events );
         dbDelta( $sql_email_log );
         dbDelta( $sql_payment_transactions );
+        dbDelta( $sql_ratings );
     }
     
     /**

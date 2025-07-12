@@ -92,7 +92,7 @@ class Booking_Master_Public {
         add_shortcode( 'booking_master_user_dashboard', array( $this, 'user_dashboard_shortcode' ) );
         add_shortcode( 'booking_master_mentor_application', array( $this, 'mentor_application_shortcode' ) );
         
-        // AJAX handlers
+        // Booking AJAX handlers
         add_action( 'wp_ajax_bm_get_service_availability', array( $this, 'ajax_get_service_availability' ) );
         add_action( 'wp_ajax_nopriv_bm_get_service_availability', array( $this, 'ajax_get_service_availability' ) );
         add_action( 'wp_ajax_bm_create_booking', array( $this, 'ajax_create_booking' ) );
@@ -101,6 +101,24 @@ class Booking_Master_Public {
         add_action( 'wp_ajax_nopriv_bm_get_booking_details', array( $this, 'ajax_get_booking_details' ) );
         add_action( 'wp_ajax_bm_calculate_booking_total', array( $this, 'ajax_calculate_booking_total' ) );
         add_action( 'wp_ajax_nopriv_bm_calculate_booking_total', array( $this, 'ajax_calculate_booking_total' ) );
+        
+        // Mentor AJAX handlers
+        add_action( 'wp_ajax_bm_save_service', array( $this, 'ajax_save_service' ) );
+        add_action( 'wp_ajax_bm_delete_service', array( $this, 'ajax_delete_service' ) );
+        add_action( 'wp_ajax_bm_duplicate_service', array( $this, 'ajax_duplicate_service' ) );
+        add_action( 'wp_ajax_bm_get_service_data', array( $this, 'ajax_get_service_data' ) );
+        add_action( 'wp_ajax_bm_approve_booking', array( $this, 'ajax_approve_booking' ) );
+        add_action( 'wp_ajax_bm_reject_booking', array( $this, 'ajax_reject_booking' ) );
+        add_action( 'wp_ajax_bm_get_mentor_bookings', array( $this, 'ajax_get_mentor_bookings' ) );
+        add_action( 'wp_ajax_bm_save_availability', array( $this, 'ajax_save_availability' ) );
+        add_action( 'wp_ajax_bm_get_availability', array( $this, 'ajax_get_availability' ) );
+        add_action( 'wp_ajax_bm_get_earnings_data', array( $this, 'ajax_get_earnings_data' ) );
+        
+        // Mentee AJAX handlers
+        add_action( 'wp_ajax_bm_cancel_booking', array( $this, 'ajax_cancel_booking' ) );
+        add_action( 'wp_ajax_bm_submit_rating', array( $this, 'ajax_submit_rating' ) );
+        add_action( 'wp_ajax_bm_get_session_details', array( $this, 'ajax_get_session_details' ) );
+        add_action( 'wp_ajax_bm_search_services', array( $this, 'ajax_search_services' ) );
         
         // Initialize booking modal
         add_action( 'wp_footer', array( $this, 'add_booking_modal' ) );
@@ -149,67 +167,444 @@ class Booking_Master_Public {
         ob_start();
         ?>
         <div class="bm-services-container" data-layout="<?php echo esc_attr( $atts['layout'] ); ?>">
-            <?php if ( empty( $services ) ) : ?>
-                <div class="bm-no-services">
-                    <h3>No services available</h3>
-                    <p>Please check back later for available services.</p>
+            <!-- Search and Filter Section -->
+            <div class="bm-services-search">
+                <div class="bm-search-form">
+                    <div class="bm-search-row">
+                        <div class="bm-search-input">
+                            <input type="text" id="bm-service-search" placeholder="Search services, mentors..." />
+                            <button id="bm-search-btn" class="bm-search-button">
+                                <i class="bm-icon-search"></i>
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bm-filters-row">
+                        <select id="bm-category-filter">
+                            <option value="">All Categories</option>
+                            <option value="business">Business</option>
+                            <option value="technology">Technology</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="design">Design</option>
+                            <option value="personal-development">Personal Development</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <input type="number" id="bm-min-price" placeholder="Min Price" step="0.01" />
+                        <input type="number" id="bm-max-price" placeholder="Max Price" step="0.01" />
+                        <button id="bm-clear-filters" class="bm-button bm-button-secondary">Clear</button>
+                    </div>
                 </div>
-            <?php else : ?>
-                <div class="bm-services-grid <?php echo esc_attr( $atts['layout'] ); ?>">
-                    <?php foreach ( $services as $service ) : ?>
-                        <div class="bm-service-card" data-service-id="<?php echo esc_attr( $service->id ); ?>">
-                            <div class="bm-service-header">
-                                <?php if ( $service->zoom_enabled ) : ?>
-                                    <div class="bm-service-badge zoom-enabled">
-                                        <i class="bm-icon-video"></i> Online Session
-                                    </div>
-                                <?php endif; ?>
-                                <h3 class="bm-service-title"><?php echo esc_html( $service->service_name ); ?></h3>
-                                <div class="bm-service-mentor">
-                                    <span class="bm-mentor-label">with</span>
-                                    <span class="bm-mentor-name"><?php echo esc_html( $service->mentor_name ); ?></span>
-                                </div>
-                            </div>
-                            
-                            <div class="bm-service-content">
-                                <?php if ( $service->description ) : ?>
-                                    <p class="bm-service-description"><?php echo esc_html( wp_trim_words( $service->description, 25 ) ); ?></p>
-                                <?php endif; ?>
-                                
-                                <div class="bm-service-meta">
-                                    <div class="bm-service-price">
-                                        <span class="bm-price-amount"><?php echo esc_html( get_option( 'booking_master_settings', array() )['currency_symbol'] ?? '$' ); ?><?php echo esc_html( number_format( $service->price, 2 ) ); ?></span>
-                                        <span class="bm-price-label">per session</span>
-                                    </div>
-                                    <div class="bm-service-duration">
-                                        <i class="bm-icon-clock"></i>
-                                        <span><?php echo esc_html( $service->duration ); ?> minutes</span>
+            </div>
+            
+            <!-- Services Grid -->
+            <div id="bm-services-results">
+                <?php if ( empty( $services ) ) : ?>
+                    <div class="bm-no-services">
+                        <h3>No services available</h3>
+                        <p>Please check back later for available services.</p>
+                    </div>
+                <?php else : ?>
+                    <div class="bm-services-grid <?php echo esc_attr( $atts['layout'] ); ?>">
+                        <?php foreach ( $services as $service ) : ?>
+                            <div class="bm-service-card" data-service-id="<?php echo esc_attr( $service->id ); ?>">
+                                <div class="bm-service-header">
+                                    <?php if ( $service->zoom_enabled ) : ?>
+                                        <div class="bm-service-badge zoom-enabled">
+                                            <i class="bm-icon-video"></i> Online Session
+                                        </div>
+                                    <?php endif; ?>
+                                    <h3 class="bm-service-title"><?php echo esc_html( $service->service_name ); ?></h3>
+                                    <div class="bm-service-mentor">
+                                        <span class="bm-mentor-label">with</span>
+                                        <span class="bm-mentor-name"><?php echo esc_html( $service->mentor_name ); ?></span>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div class="bm-service-footer">
-                                <?php if ( is_user_logged_in() && current_user_can( 'bm_book_services' ) ) : ?>
-                                    <button class="bm-book-button" onclick="bmOpenBookingModal(<?php echo esc_attr( $service->id ); ?>)">
-                                        <i class="bm-icon-calendar"></i>
-                                        <span>Book Now</span>
-                                    </button>
-                                <?php else : ?>
-                                    <button class="bm-book-button" onclick="bmShowLoginRequired()">
-                                        <i class="bm-icon-lock"></i>
-                                        <span>Login to Book</span>
-                                    </button>
-                                <?php endif; ?>
                                 
-                                <button class="bm-view-details-button" onclick="bmViewServiceDetails(<?php echo esc_attr( $service->id ); ?>)">
-                                    <span>View Details</span>
-                                </button>
+                                <div class="bm-service-content">
+                                    <?php if ( $service->description ) : ?>
+                                        <p class="bm-service-description"><?php echo esc_html( wp_trim_words( $service->description, 25 ) ); ?></p>
+                                    <?php endif; ?>
+                                    
+                                    <div class="bm-service-meta">
+                                        <div class="bm-service-price">
+                                            <span class="bm-price-amount"><?php echo esc_html( get_option( 'booking_master_settings', array() )['currency_symbol'] ?? '$' ); ?><?php echo esc_html( number_format( $service->price, 2 ) ); ?></span>
+                                            <span class="bm-price-label">per session</span>
+                                        </div>
+                                        <div class="bm-service-duration">
+                                            <i class="bm-icon-clock"></i>
+                                            <span><?php echo esc_html( $service->duration ); ?> minutes</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bm-service-footer">
+                                    <?php if ( is_user_logged_in() && current_user_can( 'bm_book_services' ) ) : ?>
+                                        <button class="bm-book-button" onclick="bmOpenBookingModal(<?php echo esc_attr( $service->id ); ?>)">
+                                            <i class="bm-icon-calendar"></i>
+                                            <span>Book Now</span>
+                                        </button>
+                                    <?php else : ?>
+                                        <button class="bm-book-button" onclick="bmShowLoginRequired()">
+                                            <i class="bm-icon-lock"></i>
+                                            <span>Login to Book</span>
+                                        </button>
+                                    <?php endif; ?>
+                                    
+                                    <button class="bm-view-details-button" onclick="bmViewServiceDetails(<?php echo esc_attr( $service->id ); ?>)">
+                                        <span>View Details</span>
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize search functionality
+            const searchBtn = document.getElementById('bm-search-btn');
+            const searchInput = document.getElementById('bm-service-search');
+            const clearBtn = document.getElementById('bm-clear-filters');
+            
+            if (searchBtn) {
+                searchBtn.addEventListener('click', bmSearchServices);
+            }
+            
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        bmSearchServices();
+                    }
+                });
+            }
+            
+            if (clearBtn) {
+                clearBtn.addEventListener('click', bmClearFilters);
+            }
+            
+            // Filter change handlers
+            document.getElementById('bm-category-filter').addEventListener('change', bmSearchServices);
+            document.getElementById('bm-min-price').addEventListener('change', bmSearchServices);
+            document.getElementById('bm-max-price').addEventListener('change', bmSearchServices);
+        });
+        
+        function bmSearchServices() {
+            const searchTerm = document.getElementById('bm-service-search').value;
+            const category = document.getElementById('bm-category-filter').value;
+            const minPrice = document.getElementById('bm-min-price').value;
+            const maxPrice = document.getElementById('bm-max-price').value;
+            
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bm_search_services&search_term=${encodeURIComponent(searchTerm)}&category=${category}&min_price=${minPrice}&max_price=${maxPrice}&nonce=<?php echo wp_create_nonce( 'bm_public_nonce' ); ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bmDisplaySearchResults(data.data);
+                } else {
+                    bmDisplaySearchResults([]);
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                bmDisplaySearchResults([]);
+            });
+        }
+        
+        function bmDisplaySearchResults(services) {
+            const resultsContainer = document.getElementById('bm-services-results');
+            
+            if (services.length === 0) {
+                resultsContainer.innerHTML = '<div class="bm-no-services"><h3>No services found</h3><p>Try adjusting your search criteria.</p></div>';
+                return;
+            }
+            
+            let html = '<div class="bm-services-grid grid">';
+            services.forEach(service => {
+                html += `
+                    <div class="bm-service-card" data-service-id="${service.id}">
+                        <div class="bm-service-header">
+                            ${service.zoom_enabled == 1 ? '<div class="bm-service-badge zoom-enabled"><i class="bm-icon-video"></i> Online Session</div>' : ''}
+                            <h3 class="bm-service-title">${service.service_name}</h3>
+                            <div class="bm-service-mentor">
+                                <span class="bm-mentor-label">with</span>
+                                <span class="bm-mentor-name">${service.mentor_name}</span>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
+                        
+                        <div class="bm-service-content">
+                            <p class="bm-service-description">${service.description ? service.description.substring(0, 150) + '...' : ''}</p>
+                            
+                            <div class="bm-service-meta">
+                                <div class="bm-service-price">
+                                    <span class="bm-price-amount">$${parseFloat(service.price).toFixed(2)}</span>
+                                    <span class="bm-price-label">per session</span>
+                                </div>
+                                <div class="bm-service-duration">
+                                    <i class="bm-icon-clock"></i>
+                                    <span>${service.duration} minutes</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bm-service-footer">
+                            <?php if ( is_user_logged_in() && current_user_can( 'bm_book_services' ) ) : ?>
+                                <button class="bm-book-button" onclick="bmOpenBookingModal(${service.id})">
+                                    <i class="bm-icon-calendar"></i>
+                                    <span>Book Now</span>
+                                </button>
+                            <?php else : ?>
+                                <button class="bm-book-button" onclick="bmShowLoginRequired()">
+                                    <i class="bm-icon-lock"></i>
+                                    <span>Login to Book</span>
+                                </button>
+                            <?php endif; ?>
+                            
+                            <button class="bm-view-details-button" onclick="bmViewServiceDetails(${service.id})">
+                                <span>View Details</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            resultsContainer.innerHTML = html;
+        }
+        
+        function bmClearFilters() {
+            document.getElementById('bm-service-search').value = '';
+            document.getElementById('bm-category-filter').value = '';
+            document.getElementById('bm-min-price').value = '';
+            document.getElementById('bm-max-price').value = '';
+            bmSearchServices();
+        }
+        
+        function bmOpenBookingModal(serviceId) {
+            // This function will be implemented when the booking modal is added
+            alert('Booking modal for service ' + serviceId + ' will open here');
+        }
+        
+        function bmShowLoginRequired() {
+            alert('Please login to book a service');
+        }
+        
+        function bmViewServiceDetails(serviceId) {
+            alert('Service details for service ' + serviceId + ' will be shown here');
+        }
+        </script>
+        
+        <style>
+        .bm-services-search {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .bm-search-row {
+            margin-bottom: 15px;
+        }
+        
+        .bm-search-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .bm-search-input input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        
+        .bm-search-button {
+            background: #0073aa;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .bm-search-button:hover {
+            background: #005a87;
+        }
+        
+        .bm-filters-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .bm-filters-row select,
+        .bm-filters-row input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .bm-services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        
+        .bm-service-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+        }
+        
+        .bm-service-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        .bm-service-badge {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        
+        .bm-service-title {
+            margin: 0 0 8px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .bm-service-mentor {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .bm-mentor-name {
+            font-weight: 600;
+            color: #0073aa;
+        }
+        
+        .bm-service-description {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .bm-service-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .bm-price-amount {
+            font-size: 20px;
+            font-weight: 600;
+            color: #28a745;
+        }
+        
+        .bm-price-label {
+            font-size: 12px;
+            color: #666;
+            display: block;
+        }
+        
+        .bm-service-duration {
+            color: #666;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .bm-service-footer {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .bm-book-button {
+            background: #0073aa;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .bm-book-button:hover {
+            background: #005a87;
+        }
+        
+        .bm-view-details-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .bm-view-details-button:hover {
+            background: #5a6268;
+        }
+        
+        .bm-no-services {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .bm-no-services h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        @media (max-width: 768px) {
+            .bm-filters-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .bm-search-input {
+                flex-direction: column;
+            }
+            
+            .bm-services-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .bm-service-footer {
+                flex-direction: column;
+            }
+        }
+        </style>
         <?php
         return ob_get_clean();
     }
@@ -1248,8 +1643,35 @@ class Booking_Master_Public {
         }
         
         function bmLoadAvailability() {
-            // Load availability manager
-            // Implementation will be added
+            const container = document.getElementById('bm-availability-manager');
+            container.innerHTML = `
+                <div class="bm-availability-interface">
+                    <div class="bm-availability-calendar">
+                        <div class="bm-calendar-header">
+                            <button id="bm-prev-month" class="bm-button bm-button-secondary">‹</button>
+                            <h4 id="bm-calendar-title">Select Date</h4>
+                            <button id="bm-next-month" class="bm-button bm-button-secondary">›</button>
+                        </div>
+                        <div id="bm-calendar-grid" class="bm-calendar-grid">
+                            <!-- Calendar will be generated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="bm-time-slots-manager">
+                        <div class="bm-slots-header">
+                            <h4 id="bm-selected-date-display">Select a date to manage time slots</h4>
+                        </div>
+                        <div id="bm-time-slots-grid" class="bm-time-slots-grid">
+                            <!-- Time slots will be generated here -->
+                        </div>
+                        <div class="bm-slots-actions">
+                            <button id="bm-save-availability" class="bm-button bm-button-primary" style="display: none;">Save Availability</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            bmInitializeAvailabilityCalendar();
         }
         
         function bmLoadEarnings() {
@@ -1264,15 +1686,51 @@ class Booking_Master_Public {
         
         function bmApproveBooking(bookingId) {
             if (confirm('Are you sure you want to approve this booking?')) {
-                // AJAX call to approve booking
-                // Implementation will be added
+                fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=bm_approve_booking&booking_id=${bookingId}&nonce=<?php echo wp_create_nonce( 'bm_mentor_nonce' ); ?>`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Booking approved successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while approving the booking.');
+                });
             }
         }
         
         function bmRejectBooking(bookingId) {
             if (confirm('Are you sure you want to reject this booking?')) {
-                // AJAX call to reject booking
-                // Implementation will be added
+                fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=bm_reject_booking&booking_id=${bookingId}&nonce=<?php echo wp_create_nonce( 'bm_mentor_nonce' ); ?>`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Booking rejected successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while rejecting the booking.');
+                });
             }
         }
         
@@ -1282,20 +1740,246 @@ class Booking_Master_Public {
         }
         
         function bmEditService(serviceId) {
-            // Load service data and show edit modal
-            // Implementation will be added
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bm_get_service_data&service_id=${serviceId}&nonce=<?php echo wp_create_nonce( 'bm_mentor_nonce' ); ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const service = data.data;
+                    document.getElementById('bm-service-modal-title').textContent = 'Edit Service';
+                    document.getElementById('bm-service-id').value = service.id;
+                    document.getElementById('bm-service-name').value = service.service_name;
+                    document.getElementById('bm-service-description').value = service.description;
+                    document.getElementById('bm-service-price').value = service.price;
+                    document.getElementById('bm-service-duration').value = service.duration;
+                    document.getElementById('bm-service-category').value = service.category;
+                    document.getElementById('bm-service-zoom').checked = service.zoom_enabled == 1;
+                    document.getElementById('bm-service-status').value = service.status;
+                    document.getElementById('bm-service-modal').style.display = 'flex';
+                } else {
+                    alert('Error loading service data: ' + data.data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while loading service data.');
+            });
         }
         
         function bmDuplicateService(serviceId) {
-            // Duplicate service
-            // Implementation will be added
+            if (confirm('Are you sure you want to duplicate this service?')) {
+                fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=bm_duplicate_service&service_id=${serviceId}&nonce=<?php echo wp_create_nonce( 'bm_mentor_nonce' ); ?>`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Service duplicated successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while duplicating the service.');
+                });
+            }
         }
         
         function bmDeleteService(serviceId) {
             if (confirm('Are you sure you want to delete this service?')) {
-                // AJAX call to delete service
-                // Implementation will be added
+                fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=bm_delete_service&service_id=${serviceId}&nonce=<?php echo wp_create_nonce( 'bm_mentor_nonce' ); ?>`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Service deleted successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the service.');
+                });
             }
+        }
+        
+        // Availability Management Functions
+        let currentAvailabilityDate = new Date();
+        let selectedAvailabilityDate = null;
+        
+        function bmInitializeAvailabilityCalendar() {
+            bmRenderAvailabilityCalendar();
+            
+            document.getElementById('bm-prev-month').addEventListener('click', function() {
+                currentAvailabilityDate.setMonth(currentAvailabilityDate.getMonth() - 1);
+                bmRenderAvailabilityCalendar();
+            });
+            
+            document.getElementById('bm-next-month').addEventListener('click', function() {
+                currentAvailabilityDate.setMonth(currentAvailabilityDate.getMonth() + 1);
+                bmRenderAvailabilityCalendar();
+            });
+            
+            document.getElementById('bm-save-availability').addEventListener('click', bmSaveAvailability);
+        }
+        
+        function bmRenderAvailabilityCalendar() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            const year = currentAvailabilityDate.getFullYear();
+            const month = currentAvailabilityDate.getMonth();
+            
+            document.getElementById('bm-calendar-title').textContent = `${monthNames[month]} ${year}`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let calendarHTML = '<div class="bm-calendar-header-days">';
+            dayNames.forEach(day => {
+                calendarHTML += `<div class="bm-calendar-day-name">${day}</div>`;
+            });
+            calendarHTML += '</div><div class="bm-calendar-days">';
+            
+            // Empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                calendarHTML += '<div class="bm-calendar-day empty"></div>';
+            }
+            
+            // Days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = date.toDateString() === new Date().toDateString();
+                const isPast = date < new Date().setHours(0,0,0,0);
+                
+                calendarHTML += `<div class="bm-calendar-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" 
+                                     onclick="bmSelectAvailabilityDate('${dateStr}')">${day}</div>`;
+            }
+            
+            calendarHTML += '</div>';
+            document.getElementById('bm-calendar-grid').innerHTML = calendarHTML;
+        }
+        
+        function bmSelectAvailabilityDate(dateStr) {
+            const dateObj = new Date(dateStr);
+            if (dateObj < new Date().setHours(0,0,0,0)) {
+                alert('Cannot modify availability for past dates.');
+                return;
+            }
+            
+            selectedAvailabilityDate = dateStr;
+            document.getElementById('bm-selected-date-display').textContent = 
+                `Manage availability for ${new Date(dateStr).toLocaleDateString()}`;
+            
+            // Highlight selected date
+            document.querySelectorAll('.bm-calendar-day').forEach(day => day.classList.remove('selected'));
+            event.target.classList.add('selected');
+            
+            bmLoadTimeSlots(dateStr);
+        }
+        
+        function bmLoadTimeSlots(date) {
+            const timeSlotsGrid = document.getElementById('bm-time-slots-grid');
+            const timeSlots = bmGenerateTimeSlots();
+            
+            let slotsHTML = '<div class="bm-slots-instructions">Click time slots to toggle availability</div>';
+            
+            timeSlots.forEach(slot => {
+                slotsHTML += `<button class="bm-time-slot" data-time="${slot}" onclick="bmToggleTimeSlot(this)">
+                                ${slot}
+                              </button>`;
+            });
+            
+            timeSlotsGrid.innerHTML = slotsHTML;
+            
+            // Load existing availability for this date
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bm_get_availability&date=${date}&nonce=<?php echo wp_create_nonce( 'bm_mentor_nonce' ); ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    data.data.forEach(availability => {
+                        const slotElement = document.querySelector(`[data-time="${availability.time_slot}"]`);
+                        if (slotElement) {
+                            slotElement.classList.add('available');
+                        }
+                    });
+                }
+                document.getElementById('bm-save-availability').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error loading availability:', error);
+            });
+        }
+        
+        function bmGenerateTimeSlots() {
+            const slots = [];
+            for (let hour = 8; hour < 22; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    slots.push(timeStr);
+                }
+            }
+            return slots;
+        }
+        
+        function bmToggleTimeSlot(element) {
+            element.classList.toggle('available');
+        }
+        
+        function bmSaveAvailability() {
+            if (!selectedAvailabilityDate) {
+                alert('Please select a date first.');
+                return;
+            }
+            
+            const availableSlots = Array.from(document.querySelectorAll('.bm-time-slot.available'))
+                                        .map(slot => slot.getAttribute('data-time'));
+            
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bm_save_availability&date=${selectedAvailabilityDate}&time_slots=${JSON.stringify(availableSlots)}&nonce=<?php echo wp_create_nonce( 'bm_mentor_nonce' ); ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Availability saved successfully!');
+                } else {
+                    alert('Error: ' + data.data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving availability.');
+            });
         }
         </script>
         
@@ -1702,27 +2386,175 @@ class Booking_Master_Public {
             resize: vertical;
         }
         
-        .bm-form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        
-        .bm-input-with-symbol {
-            position: relative;
-        }
-        
-        .bm-currency-symbol {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #666;
-        }
-        
-        .bm-input-with-symbol input {
-            padding-left: 30px;
-        }
+                 .bm-form-row {
+             display: grid;
+             grid-template-columns: 1fr 1fr;
+             gap: 15px;
+         }
+         
+         .bm-input-with-symbol {
+             position: relative;
+         }
+         
+         .bm-currency-symbol {
+             position: absolute;
+             left: 10px;
+             top: 50%;
+             transform: translateY(-50%);
+             color: #666;
+         }
+         
+         .bm-input-with-symbol input {
+             padding-left: 30px;
+         }
+         
+         /* Availability Management Styles */
+         .bm-availability-interface {
+             display: grid;
+             grid-template-columns: 1fr 1fr;
+             gap: 30px;
+             background: #fff;
+             border-radius: 8px;
+             padding: 25px;
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+         }
+         
+         .bm-calendar-header {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             margin-bottom: 20px;
+         }
+         
+         .bm-calendar-header h4 {
+             margin: 0;
+             color: #333;
+         }
+         
+         .bm-calendar-grid {
+             background: #fff;
+             border-radius: 6px;
+             overflow: hidden;
+             border: 1px solid #e9ecef;
+         }
+         
+         .bm-calendar-header-days {
+             display: grid;
+             grid-template-columns: repeat(7, 1fr);
+             background: #f8f9fa;
+         }
+         
+         .bm-calendar-day-name {
+             padding: 10px;
+             text-align: center;
+             font-weight: 600;
+             color: #666;
+             border-right: 1px solid #e9ecef;
+             font-size: 12px;
+         }
+         
+         .bm-calendar-day-name:last-child {
+             border-right: none;
+         }
+         
+         .bm-calendar-days {
+             display: grid;
+             grid-template-columns: repeat(7, 1fr);
+         }
+         
+         .bm-calendar-day {
+             padding: 12px;
+             text-align: center;
+             cursor: pointer;
+             border-right: 1px solid #e9ecef;
+             border-bottom: 1px solid #e9ecef;
+             transition: all 0.3s ease;
+             min-height: 40px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+         }
+         
+         .bm-calendar-day:last-child {
+             border-right: none;
+         }
+         
+         .bm-calendar-day:hover:not(.empty):not(.past) {
+             background: #f0f8ff;
+         }
+         
+         .bm-calendar-day.today {
+             background: #0073aa;
+             color: white;
+             font-weight: 600;
+         }
+         
+         .bm-calendar-day.selected {
+             background: #28a745;
+             color: white;
+             font-weight: 600;
+         }
+         
+         .bm-calendar-day.past {
+             color: #ccc;
+             cursor: not-allowed;
+         }
+         
+         .bm-calendar-day.empty {
+             cursor: default;
+         }
+         
+         .bm-slots-header h4 {
+             margin: 0 0 20px;
+             color: #333;
+         }
+         
+         .bm-slots-instructions {
+             background: #e7f3ff;
+             color: #0073aa;
+             padding: 10px;
+             border-radius: 4px;
+             text-align: center;
+             margin-bottom: 15px;
+             font-size: 14px;
+         }
+         
+         .bm-time-slots-grid {
+             display: grid;
+             grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+             gap: 8px;
+             margin-bottom: 20px;
+         }
+         
+         .bm-time-slot {
+             background: #f8f9fa;
+             border: 1px solid #e9ecef;
+             border-radius: 4px;
+             padding: 8px 12px;
+             cursor: pointer;
+             transition: all 0.3s ease;
+             font-size: 12px;
+             color: #666;
+         }
+         
+         .bm-time-slot:hover {
+             background: #e9ecef;
+             border-color: #0073aa;
+         }
+         
+         .bm-time-slot.available {
+             background: #28a745;
+             color: white;
+             border-color: #28a745;
+         }
+         
+         .bm-time-slot.available:hover {
+             background: #218838;
+         }
+         
+         .bm-slots-actions {
+             text-align: center;
+         }
         
         @media (max-width: 768px) {
             .bm-dashboard-grid {
@@ -2252,23 +3084,169 @@ class Booking_Master_Public {
         }
         
         function bmLoadSessionDetails(bookingId) {
-            // Load session details via AJAX
-            // Implementation will be added
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bm_get_session_details&booking_id=${bookingId}&nonce=<?php echo wp_create_nonce( 'bm_mentee_nonce' ); ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const booking = data.data;
+                    document.getElementById('bm-session-details').innerHTML = `
+                        <div class="bm-session-detail-item">
+                            <strong>Service:</strong> ${booking.service_name}
+                        </div>
+                        <div class="bm-session-detail-item">
+                            <strong>Mentor:</strong> ${booking.mentor_name}
+                        </div>
+                        <div class="bm-session-detail-item">
+                            <strong>Date & Time:</strong> ${new Date(booking.booking_date).toLocaleDateString()} at ${new Date(booking.booking_date).toLocaleTimeString()}
+                        </div>
+                        <div class="bm-session-detail-item">
+                            <strong>Status:</strong> <span class="bm-status ${booking.status}">${booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span>
+                        </div>
+                        <div class="bm-session-detail-item">
+                            <strong>Amount:</strong> $${parseFloat(booking.total_amount).toFixed(2)}
+                        </div>
+                        ${booking.notes ? `<div class="bm-session-detail-item"><strong>Notes:</strong> ${booking.notes}</div>` : ''}
+                        ${booking.zoom_meeting_url ? `<div class="bm-session-detail-item"><strong>Join URL:</strong> <a href="${booking.zoom_meeting_url}" target="_blank">Join Meeting</a></div>` : ''}
+                    `;
+                } else {
+                    document.getElementById('bm-session-details').innerHTML = '<p>Error loading session details.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('bm-session-details').innerHTML = '<p>Error loading session details.</p>';
+            });
         }
         
         function bmLoadHistory() {
-            // Load session history
-            // Implementation will be added
+            const container = document.getElementById('bm-history-container');
+            container.innerHTML = `
+                <div class="bm-history-filters">
+                    <select id="bm-history-month-filter">
+                        <option value="">All Time</option>
+                        ${generateMonthOptions()}
+                    </select>
+                    <select id="bm-history-status-filter">
+                        <option value="">All Statuses</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                    <button class="bm-button bm-button-secondary" onclick="bmFilterHistory()">Filter</button>
+                </div>
+                <div id="bm-history-results">
+                    <p>Loading history...</p>
+                </div>
+            `;
+            
+            bmFilterHistory();
+        }
+        
+        function bmFilterHistory() {
+            // Implementation for filtering history
+            const resultsContainer = document.getElementById('bm-history-results');
+            resultsContainer.innerHTML = '<p>History filtering functionality will be implemented.</p>';
+        }
+        
+        function generateMonthOptions() {
+            const months = [];
+            const currentDate = new Date();
+            for (let i = 0; i < 12; i++) {
+                const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                const value = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                const text = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                months.push(`<option value="${value}">${text}</option>`);
+            }
+            return months.join('');
         }
         
         function bmLoadFavorites() {
-            // Load favorites
-            // Implementation will be added
+            const container = document.getElementById('bm-favorites-container');
+            container.innerHTML = `
+                <div class="bm-favorites-grid">
+                    <div class="bm-favorite-section">
+                        <h5>Favorite Mentors</h5>
+                        <div class="bm-favorite-mentors">
+                            <p>No favorite mentors yet. Rate completed sessions to add mentors to your favorites.</p>
+                        </div>
+                    </div>
+                    <div class="bm-favorite-section">
+                        <h5>Favorite Services</h5>
+                        <div class="bm-favorite-services">
+                            <p>No favorite services yet. Bookmark services you're interested in.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
         
         function bmLoadMenteeProfile() {
-            // Load mentee profile form
-            // Implementation will be added
+            const container = document.getElementById('bm-mentee-profile-form');
+            const currentUser = <?php echo json_encode( wp_get_current_user() ); ?>;
+            
+            container.innerHTML = `
+                <form id="bm-mentee-profile-update">
+                    <div class="bm-form-group">
+                        <label for="bm-profile-display-name">Display Name</label>
+                        <input type="text" id="bm-profile-display-name" name="display_name" value="${currentUser.display_name}" required>
+                    </div>
+                    
+                    <div class="bm-form-group">
+                        <label for="bm-profile-email">Email Address</label>
+                        <input type="email" id="bm-profile-email" name="user_email" value="${currentUser.user_email}" required>
+                    </div>
+                    
+                    <div class="bm-form-group">
+                        <label for="bm-profile-bio">Bio (Optional)</label>
+                        <textarea id="bm-profile-bio" name="bio" rows="4" placeholder="Tell us about yourself, your learning goals, interests...">${currentUser.description || ''}</textarea>
+                    </div>
+                    
+                    <div class="bm-form-group">
+                        <label for="bm-profile-interests">Learning Interests</label>
+                        <input type="text" id="bm-profile-interests" name="interests" placeholder="e.g., Business, Technology, Marketing" value="">
+                        <p class="description">Comma-separated interests to help us recommend relevant mentors</p>
+                    </div>
+                    
+                    <div class="bm-form-group">
+                        <label for="bm-profile-timezone">Timezone</label>
+                        <select id="bm-profile-timezone" name="timezone">
+                            <option value="">Select Timezone</option>
+                            <option value="America/New_York">Eastern Time</option>
+                            <option value="America/Chicago">Central Time</option>
+                            <option value="America/Denver">Mountain Time</option>
+                            <option value="America/Los_Angeles">Pacific Time</option>
+                            <option value="Europe/London">London</option>
+                            <option value="Europe/Paris">Paris</option>
+                            <option value="Asia/Tokyo">Tokyo</option>
+                        </select>
+                    </div>
+                    
+                    <div class="bm-form-group">
+                        <h5>Notification Preferences</h5>
+                        <label>
+                            <input type="checkbox" name="email_reminders" value="1" checked>
+                            Email reminders for upcoming sessions
+                        </label>
+                        <label>
+                            <input type="checkbox" name="email_promotions" value="1">
+                            Promotional emails about new mentors and services
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="bm-button bm-button-primary">Update Profile</button>
+                </form>
+            `;
+            
+            // Add form submission handler
+            document.getElementById('bm-mentee-profile-update').addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('Profile update functionality will be implemented.');
+            });
         }
         </script>
         
@@ -2779,5 +3757,554 @@ class Booking_Master_Public {
     private function process_paypal_payment( $booking_id, $booking_total ) {
         // Implementation for PayPal payment processing
         // This will be handled by the payment gateways class
+    }
+
+    /**
+     * Save or update service (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_save_service() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $services_table = $wpdb->prefix . 'bm_services';
+        $mentor_id = get_current_user_id();
+        $service_id = intval( $_POST['service_id'] );
+
+        $service_data = array(
+            'mentor_id' => $mentor_id,
+            'service_name' => sanitize_text_field( $_POST['service_name'] ),
+            'description' => sanitize_textarea_field( $_POST['description'] ),
+            'price' => floatval( $_POST['price'] ),
+            'duration' => intval( $_POST['duration'] ),
+            'category' => sanitize_text_field( $_POST['category'] ),
+            'zoom_enabled' => isset( $_POST['zoom_enabled'] ) ? 1 : 0,
+            'status' => sanitize_text_field( $_POST['status'] ),
+            'updated_at' => current_time( 'mysql' )
+        );
+
+        if ( $service_id ) {
+            // Update existing service
+            $result = $wpdb->update( $services_table, $service_data, array( 'id' => $service_id, 'mentor_id' => $mentor_id ) );
+        } else {
+            // Create new service
+            $service_data['created_at'] = current_time( 'mysql' );
+            $result = $wpdb->insert( $services_table, $service_data );
+            $service_id = $wpdb->insert_id;
+        }
+
+        if ( $result !== false ) {
+            wp_send_json_success( array( 'message' => 'Service saved successfully', 'service_id' => $service_id ) );
+        } else {
+            wp_send_json_error( array( 'message' => 'Failed to save service' ) );
+        }
+    }
+
+    /**
+     * Delete service (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_delete_service() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $services_table = $wpdb->prefix . 'bm_services';
+        $mentor_id = get_current_user_id();
+        $service_id = intval( $_POST['service_id'] );
+
+        $result = $wpdb->delete( $services_table, array( 'id' => $service_id, 'mentor_id' => $mentor_id ) );
+
+        if ( $result !== false ) {
+            wp_send_json_success( array( 'message' => 'Service deleted successfully' ) );
+        } else {
+            wp_send_json_error( array( 'message' => 'Failed to delete service' ) );
+        }
+    }
+
+    /**
+     * Duplicate service (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_duplicate_service() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $services_table = $wpdb->prefix . 'bm_services';
+        $mentor_id = get_current_user_id();
+        $service_id = intval( $_POST['service_id'] );
+
+        // Get original service
+        $original_service = $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM $services_table WHERE id = %d AND mentor_id = %d",
+            $service_id, $mentor_id
+        ) );
+
+        if ( ! $original_service ) {
+            wp_send_json_error( array( 'message' => 'Service not found' ) );
+        }
+
+        // Create duplicate
+        $duplicate_data = array(
+            'mentor_id' => $mentor_id,
+            'service_name' => $original_service->service_name . ' (Copy)',
+            'description' => $original_service->description,
+            'price' => $original_service->price,
+            'duration' => $original_service->duration,
+            'category' => $original_service->category,
+            'zoom_enabled' => $original_service->zoom_enabled,
+            'status' => 'inactive',
+            'created_at' => current_time( 'mysql' ),
+            'updated_at' => current_time( 'mysql' )
+        );
+
+        $result = $wpdb->insert( $services_table, $duplicate_data );
+
+        if ( $result !== false ) {
+            wp_send_json_success( array( 'message' => 'Service duplicated successfully' ) );
+        } else {
+            wp_send_json_error( array( 'message' => 'Failed to duplicate service' ) );
+        }
+    }
+
+    /**
+     * Get service data (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_get_service_data() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $services_table = $wpdb->prefix . 'bm_services';
+        $mentor_id = get_current_user_id();
+        $service_id = intval( $_POST['service_id'] );
+
+        $service = $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM $services_table WHERE id = %d AND mentor_id = %d",
+            $service_id, $mentor_id
+        ) );
+
+        if ( $service ) {
+            wp_send_json_success( $service );
+        } else {
+            wp_send_json_error( array( 'message' => 'Service not found' ) );
+        }
+    }
+
+    /**
+     * Approve booking (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_approve_booking() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $bookings_table = $wpdb->prefix . 'bm_bookings';
+        $mentor_id = get_current_user_id();
+        $booking_id = intval( $_POST['booking_id'] );
+
+        $result = $wpdb->update(
+            $bookings_table,
+            array( 'status' => 'confirmed', 'updated_at' => current_time( 'mysql' ) ),
+            array( 'id' => $booking_id, 'mentor_id' => $mentor_id )
+        );
+
+        if ( $result !== false ) {
+            wp_send_json_success( array( 'message' => 'Booking approved successfully' ) );
+        } else {
+            wp_send_json_error( array( 'message' => 'Failed to approve booking' ) );
+        }
+    }
+
+    /**
+     * Reject booking (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_reject_booking() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $bookings_table = $wpdb->prefix . 'bm_bookings';
+        $mentor_id = get_current_user_id();
+        $booking_id = intval( $_POST['booking_id'] );
+
+        $result = $wpdb->update(
+            $bookings_table,
+            array( 'status' => 'cancelled', 'updated_at' => current_time( 'mysql' ) ),
+            array( 'id' => $booking_id, 'mentor_id' => $mentor_id )
+        );
+
+        if ( $result !== false ) {
+            wp_send_json_success( array( 'message' => 'Booking rejected successfully' ) );
+        } else {
+            wp_send_json_error( array( 'message' => 'Failed to reject booking' ) );
+        }
+    }
+
+    /**
+     * Get mentor bookings (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_get_mentor_bookings() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $bookings_table = $wpdb->prefix . 'bm_bookings';
+        $services_table = $wpdb->prefix . 'bm_services';
+        $mentor_id = get_current_user_id();
+
+        $status_filter = sanitize_text_field( $_POST['status'] ?? '' );
+        $date_filter = sanitize_text_field( $_POST['date'] ?? '' );
+
+        $where_conditions = array( "b.mentor_id = %d" );
+        $params = array( $mentor_id );
+
+        if ( $status_filter ) {
+            $where_conditions[] = "b.status = %s";
+            $params[] = $status_filter;
+        }
+
+        if ( $date_filter ) {
+            $where_conditions[] = "DATE(b.booking_date) = %s";
+            $params[] = $date_filter;
+        }
+
+        $where_clause = implode( ' AND ', $where_conditions );
+
+        $bookings = $wpdb->get_results( $wpdb->prepare(
+            "SELECT b.*, s.service_name, u.display_name as mentee_name, u.user_email as mentee_email
+             FROM $bookings_table b
+             LEFT JOIN $services_table s ON b.service_id = s.id
+             LEFT JOIN {$wpdb->users} u ON b.mentee_id = u.ID
+             WHERE $where_clause
+             ORDER BY b.booking_date DESC
+             LIMIT 50",
+            $params
+        ) );
+
+        wp_send_json_success( $bookings );
+    }
+
+    /**
+     * Save availability (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_save_availability() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $availability_table = $wpdb->prefix . 'bm_mentor_availability';
+        $mentor_id = get_current_user_id();
+        $date = sanitize_text_field( $_POST['date'] );
+        $time_slots_json = sanitize_text_field( $_POST['time_slots'] ?? '[]' );
+        $time_slots = json_decode( $time_slots_json, true );
+        if ( ! is_array( $time_slots ) ) {
+            $time_slots = array();
+        }
+        $time_slots = array_map( 'sanitize_text_field', $time_slots );
+
+        // Delete existing availability for this date
+        $wpdb->delete( $availability_table, array( 'mentor_id' => $mentor_id, 'date' => $date ) );
+
+        // Insert new availability
+        foreach ( $time_slots as $time_slot ) {
+            $wpdb->insert( $availability_table, array(
+                'mentor_id' => $mentor_id,
+                'date' => $date,
+                'time_slot' => $time_slot,
+                'is_available' => 1,
+                'created_at' => current_time( 'mysql' )
+            ) );
+        }
+
+        wp_send_json_success( array( 'message' => 'Availability saved successfully' ) );
+    }
+
+    /**
+     * Get availability (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_get_availability() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $availability_table = $wpdb->prefix . 'bm_mentor_availability';
+        $mentor_id = get_current_user_id();
+        $date = sanitize_text_field( $_POST['date'] );
+
+        $availability = $wpdb->get_results( $wpdb->prepare(
+            "SELECT * FROM $availability_table WHERE mentor_id = %d AND date = %s",
+            $mentor_id, $date
+        ) );
+
+        wp_send_json_success( $availability );
+    }
+
+    /**
+     * Get earnings data (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_get_earnings_data() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentor_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_manage_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $bookings_table = $wpdb->prefix . 'bm_bookings';
+        $mentor_id = get_current_user_id();
+
+        $total_earnings = $wpdb->get_var( $wpdb->prepare(
+            "SELECT SUM(total_amount) FROM $bookings_table WHERE mentor_id = %d AND status IN ('confirmed', 'completed')",
+            $mentor_id
+        ) ) ?? 0;
+
+        $monthly_earnings = $wpdb->get_var( $wpdb->prepare(
+            "SELECT SUM(total_amount) FROM $bookings_table 
+             WHERE mentor_id = %d AND status IN ('confirmed', 'completed')
+             AND MONTH(created_at) = MONTH(CURRENT_DATE()) 
+             AND YEAR(created_at) = YEAR(CURRENT_DATE())",
+            $mentor_id
+        ) ) ?? 0;
+
+        $pending_earnings = $wpdb->get_var( $wpdb->prepare(
+            "SELECT SUM(total_amount) FROM $bookings_table WHERE mentor_id = %d AND status = 'confirmed'",
+            $mentor_id
+        ) ) ?? 0;
+
+        wp_send_json_success( array(
+            'total_earnings' => $total_earnings,
+            'monthly_earnings' => $monthly_earnings,
+            'pending_earnings' => $pending_earnings
+        ) );
+    }
+
+    /**
+     * Cancel booking (AJAX handler for mentees)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_cancel_booking() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentee_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_book_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $bookings_table = $wpdb->prefix . 'bm_bookings';
+        $mentee_id = get_current_user_id();
+        $booking_id = intval( $_POST['booking_id'] );
+
+        $result = $wpdb->update(
+            $bookings_table,
+            array( 'status' => 'cancelled', 'updated_at' => current_time( 'mysql' ) ),
+            array( 'id' => $booking_id, 'mentee_id' => $mentee_id )
+        );
+
+        if ( $result !== false ) {
+            wp_send_json_success( array( 'message' => 'Booking cancelled successfully' ) );
+        } else {
+            wp_send_json_error( array( 'message' => 'Failed to cancel booking' ) );
+        }
+    }
+
+    /**
+     * Submit rating (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_submit_rating() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentee_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        if ( ! current_user_can( 'bm_book_services' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        global $wpdb;
+        $ratings_table = $wpdb->prefix . 'bm_ratings';
+        $mentee_id = get_current_user_id();
+        $booking_id = intval( $_POST['booking_id'] );
+        $rating = intval( $_POST['rating'] );
+        $comment = sanitize_textarea_field( $_POST['comment'] );
+        $recommend = isset( $_POST['recommend'] ) ? 1 : 0;
+
+        $rating_data = array(
+            'booking_id' => $booking_id,
+            'mentee_id' => $mentee_id,
+            'rating' => $rating,
+            'comment' => $comment,
+            'recommend' => $recommend,
+            'created_at' => current_time( 'mysql' )
+        );
+
+        $result = $wpdb->insert( $ratings_table, $rating_data );
+
+        if ( $result !== false ) {
+            wp_send_json_success( array( 'message' => 'Rating submitted successfully' ) );
+        } else {
+            wp_send_json_error( array( 'message' => 'Failed to submit rating' ) );
+        }
+    }
+
+    /**
+     * Get session details (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_get_session_details() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_mentee_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        global $wpdb;
+        $bookings_table = $wpdb->prefix . 'bm_bookings';
+        $services_table = $wpdb->prefix . 'bm_services';
+        $mentee_id = get_current_user_id();
+        $booking_id = intval( $_POST['booking_id'] );
+
+        $booking = $wpdb->get_row( $wpdb->prepare(
+            "SELECT b.*, s.service_name, s.description as service_description, u.display_name as mentor_name, u.user_email as mentor_email
+             FROM $bookings_table b
+             LEFT JOIN $services_table s ON b.service_id = s.id
+             LEFT JOIN {$wpdb->users} u ON b.mentor_id = u.ID
+             WHERE b.id = %d AND b.mentee_id = %d",
+            $booking_id, $mentee_id
+        ) );
+
+        if ( $booking ) {
+            wp_send_json_success( $booking );
+        } else {
+            wp_send_json_error( array( 'message' => 'Session not found' ) );
+        }
+    }
+
+    /**
+     * Search services (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_search_services() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_public_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        global $wpdb;
+        $services_table = $wpdb->prefix . 'bm_services';
+        $search_term = sanitize_text_field( $_POST['search_term'] ?? '' );
+        $category = sanitize_text_field( $_POST['category'] ?? '' );
+        $min_price = floatval( $_POST['min_price'] ?? 0 );
+        $max_price = floatval( $_POST['max_price'] ?? 0 );
+
+        $where_conditions = array( "s.status = 'active'" );
+        $params = array();
+
+        if ( $search_term ) {
+            $where_conditions[] = "(s.service_name LIKE %s OR s.description LIKE %s OR u.display_name LIKE %s)";
+            $search_like = '%' . $wpdb->esc_like( $search_term ) . '%';
+            $params[] = $search_like;
+            $params[] = $search_like;
+            $params[] = $search_like;
+        }
+
+        if ( $category ) {
+            $where_conditions[] = "s.category = %s";
+            $params[] = $category;
+        }
+
+        if ( $min_price > 0 ) {
+            $where_conditions[] = "s.price >= %f";
+            $params[] = $min_price;
+        }
+
+        if ( $max_price > 0 ) {
+            $where_conditions[] = "s.price <= %f";
+            $params[] = $max_price;
+        }
+
+        $where_clause = implode( ' AND ', $where_conditions );
+
+        $query = "
+            SELECT s.*, u.display_name as mentor_name, u.user_email as mentor_email
+            FROM $services_table s
+            LEFT JOIN {$wpdb->users} u ON s.mentor_id = u.ID
+            WHERE $where_clause
+            ORDER BY s.created_at DESC
+            LIMIT 20
+        ";
+
+        $services = $wpdb->get_results( $wpdb->prepare( $query, $params ) );
+
+        wp_send_json_success( $services );
     }
 }
