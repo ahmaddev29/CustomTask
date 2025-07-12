@@ -776,8 +776,95 @@ class Booking_Master_Public {
      * @return   string
      */
     private function render_mentee_dashboard() {
-        // Implementation for mentee dashboard
-        return '<div class="bm-mentee-dashboard"><p>Welcome to your mentee dashboard! View your bookings and find new mentors.</p></div>';
+        global $wpdb;
+        $mentee_id = get_current_user_id();
+        
+        // Get mentee statistics
+        $bookings_table = $wpdb->prefix . 'bm_bookings';
+        $services_table = $wpdb->prefix . 'bm_services';
+        
+        $stats = array(
+            'total_bookings' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM $bookings_table WHERE mentee_id = %d",
+                $mentee_id
+            ) ),
+            'upcoming_bookings' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM $bookings_table WHERE mentee_id = %d AND status = 'confirmed' AND booking_date > NOW()",
+                $mentee_id
+            ) ),
+            'completed_sessions' => $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM $bookings_table WHERE mentee_id = %d AND status = 'completed'",
+                $mentee_id
+            ) ),
+        );
+        
+        // Get recent bookings
+        $recent_bookings = $wpdb->get_results( $wpdb->prepare(
+            "SELECT b.*, s.service_name, u.display_name as mentor_name 
+             FROM $bookings_table b 
+             LEFT JOIN $services_table s ON b.service_id = s.id 
+             LEFT JOIN {$wpdb->users} u ON b.mentor_id = u.ID 
+             WHERE b.mentee_id = %d 
+             ORDER BY b.booking_date DESC 
+             LIMIT 5",
+            $mentee_id
+        ) );
+        
+        ob_start();
+        ?>
+        <div class="bm-mentee-dashboard">
+            <div class="bm-dashboard-stats">
+                <div class="bm-stat-item">
+                    <h4><?php echo esc_html( $stats['total_bookings'] ); ?></h4>
+                    <p>Total Sessions</p>
+                </div>
+                <div class="bm-stat-item">
+                    <h4><?php echo esc_html( $stats['upcoming_bookings'] ); ?></h4>
+                    <p>Upcoming</p>
+                </div>
+                <div class="bm-stat-item">
+                    <h4><?php echo esc_html( $stats['completed_sessions'] ); ?></h4>
+                    <p>Completed</p>
+                </div>
+            </div>
+            
+            <div class="bm-dashboard-actions">
+                <a href="<?php echo admin_url( 'admin.php?page=booking-master-mentee' ); ?>" class="bm-button bm-button-primary">
+                    Visit Full Dashboard
+                </a>
+                <a href="<?php echo home_url( '/services' ); ?>" class="bm-button bm-button-secondary">
+                    Browse Services
+                </a>
+            </div>
+            
+            <?php if ( $recent_bookings ) : ?>
+            <div class="bm-recent-bookings">
+                <h4>Recent Bookings</h4>
+                <div class="bm-bookings-list">
+                    <?php foreach ( $recent_bookings as $booking ) : ?>
+                    <div class="bm-booking-item">
+                        <div class="bm-booking-info">
+                            <h5><?php echo esc_html( $booking->service_name ); ?></h5>
+                            <p>with <?php echo esc_html( $booking->mentor_name ); ?></p>
+                            <p><?php echo esc_html( date( 'M j, Y g:i A', strtotime( $booking->booking_date ) ) ); ?></p>
+                        </div>
+                        <div class="bm-booking-status">
+                            <span class="bm-status <?php echo esc_attr( $booking->status ); ?>">
+                                <?php echo esc_html( ucfirst( $booking->status ) ); ?>
+                            </span>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php else : ?>
+            <div class="bm-no-bookings">
+                <p>You haven't booked any sessions yet. <a href="<?php echo home_url( '/services' ); ?>">Browse available services</a> to get started!</p>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
     }
 
     /**
