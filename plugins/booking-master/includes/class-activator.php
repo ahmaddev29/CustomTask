@@ -218,24 +218,26 @@ class Booking_Master_Activator {
      * @since    1.0.0
      */
     private static function add_user_roles() {
-        // Add Mentor role
+        // Add Mentor role with admin access capabilities
         add_role(
             'mentor',
             'Mentor',
             array(
                 'read' => true,
+                'edit_dashboard' => true,
                 'bm_manage_services' => true,
                 'bm_view_bookings' => true,
                 'bm_manage_zoom' => true,
             )
         );
         
-        // Add Mentee role (basically subscriber with booking capabilities)
+        // Add Mentee role with admin access capabilities
         add_role(
             'mentee',
             'Mentee',
             array(
                 'read' => true,
+                'edit_dashboard' => true,
                 'bm_book_services' => true,
             )
         );

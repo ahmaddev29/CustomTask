@@ -72,6 +72,7 @@ class Booking_Master {
         $this->define_admin_hooks();
         $this->define_public_hooks();
         $this->init_core_classes();
+        $this->update_roles_if_needed();
     }
 
     /**
@@ -121,11 +122,21 @@ class Booking_Master {
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-availability-management.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-calendar-sync.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-reports.php';
+        
+        /**
+         * Roles updater
+         */
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-roles-updater.php';
 
         /**
          * The class responsible for defining all actions that occur in the admin area.
          */
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-admin.php';
+        
+        /**
+         * Admin notices handler
+         */
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-admin-notices.php';
 
         /**
          * The class responsible for defining all actions that occur in the public-facing
@@ -163,6 +174,10 @@ class Booking_Master {
         $this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
         $this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
         $this->loader->add_action( 'admin_menu', $plugin_admin, 'add_admin_menu' );
+        
+        // Initialize admin notices
+        $admin_notices = new Booking_Master_Admin_Notices();
+        $this->loader->add_action( 'init', $admin_notices, 'init' );
     }
 
     /**
@@ -222,6 +237,19 @@ class Booking_Master {
         // Initialize reports
         $reports = new Booking_Master_Reports();
         $this->loader->add_action( 'init', $reports, 'init' );
+    }
+
+    /**
+     * Update user roles if needed
+     *
+     * @since    1.0.0
+     * @access   private
+     */
+    private function update_roles_if_needed() {
+        // Check if roles need updating
+        if ( Booking_Master_Roles_Updater::needs_update() ) {
+            $this->loader->add_action( 'init', 'Booking_Master_Roles_Updater', 'update_roles' );
+        }
     }
 
     /**
