@@ -180,6 +180,142 @@ $settings = wp_parse_args($settings, $defaults);
                     </tr>
                 </table>
                 
+                <h2><?php esc_html_e( 'Available Shortcodes', 'booking-master' ); ?></h2>
+                <div class="bm-shortcodes-section">
+                    <div class="bm-shortcode-card">
+                        <h3><?php esc_html_e( 'Display All Services', 'booking-master' ); ?></h3>
+                        <code>[booking_master_services]</code>
+                        <p><?php esc_html_e( 'Shows all active services with search and filter functionality.', 'booking-master' ); ?></p>
+                        <div class="bm-shortcode-options">
+                            <h4><?php esc_html_e( 'Options:', 'booking-master' ); ?></h4>
+                            <ul>
+                                <li><code>layout="grid"</code> - Grid layout (default)</li>
+                                <li><code>layout="list"</code> - List layout</li>
+                                <li><code>columns="3"</code> - Number of columns (1-4)</li>
+                                <li><code>limit="12"</code> - Number of services to show</li>
+                                <li><code>category="business"</code> - Filter by category</li>
+                            </ul>
+                        </div>
+                        <div class="bm-shortcode-examples">
+                            <h4><?php esc_html_e( 'Examples:', 'booking-master' ); ?></h4>
+                            <code>[booking_master_services layout="grid" columns="3" limit="9"]</code><br>
+                            <code>[booking_master_services category="business" layout="list"]</code>
+                        </div>
+                    </div>
+                    
+                    <div class="bm-shortcode-card">
+                        <h3><?php esc_html_e( 'Display Services by Mentor', 'booking-master' ); ?></h3>
+                        <code>[booking_master_services mentor_id="USER_ID"]</code>
+                        <p><?php esc_html_e( 'Shows services from a specific mentor only.', 'booking-master' ); ?></p>
+                        <div class="bm-shortcode-options">
+                            <h4><?php esc_html_e( 'Options:', 'booking-master' ); ?></h4>
+                            <ul>
+                                <li><code>mentor_id="123"</code> - Mentor's user ID (required)</li>
+                                <li><code>layout="grid"</code> - Grid or list layout</li>
+                                <li><code>columns="2"</code> - Number of columns</li>
+                                <li><code>show_mentor_info="false"</code> - Hide mentor name</li>
+                            </ul>
+                        </div>
+                        <div class="bm-shortcode-examples">
+                            <h4><?php esc_html_e( 'Examples:', 'booking-master' ); ?></h4>
+                            <code>[booking_master_services mentor_id="123" layout="grid" columns="2"]</code><br>
+                            <code>[booking_master_services mentor_id="123" show_mentor_info="false"]</code>
+                        </div>
+                    </div>
+                    
+                    <div class="bm-shortcode-card">
+                        <h3><?php esc_html_e( 'User Dashboard', 'booking-master' ); ?></h3>
+                        <code>[booking_master_user_dashboard]</code>
+                        <p><?php esc_html_e( 'Displays the appropriate dashboard based on user role (mentor or mentee).', 'booking-master' ); ?></p>
+                        <div class="bm-shortcode-options">
+                            <h4><?php esc_html_e( 'Options:', 'booking-master' ); ?></h4>
+                            <ul>
+                                <li><code>redirect_url="/login"</code> - Redirect URL for non-logged in users</li>
+                                <li><code>default_tab="overview"</code> - Default tab to show</li>
+                            </ul>
+                        </div>
+                        <div class="bm-shortcode-examples">
+                            <h4><?php esc_html_e( 'Examples:', 'booking-master' ); ?></h4>
+                            <code>[booking_master_user_dashboard redirect_url="/login"]</code><br>
+                            <code>[booking_master_user_dashboard default_tab="bookings"]</code>
+                        </div>
+                    </div>
+                    
+                    <div class="bm-shortcode-card">
+                        <h3><?php esc_html_e( 'Mentor Application Form', 'booking-master' ); ?></h3>
+                        <code>[booking_master_mentor_application]</code>
+                        <p><?php esc_html_e( 'Shows the mentor application form for users to apply as mentors.', 'booking-master' ); ?></p>
+                        <div class="bm-shortcode-options">
+                            <h4><?php esc_html_e( 'Options:', 'booking-master' ); ?></h4>
+                            <ul>
+                                <li><code>redirect_url="/success"</code> - Redirect after successful application</li>
+                                <li><code>auto_approve="false"</code> - Auto-approve applications</li>
+                            </ul>
+                        </div>
+                        <div class="bm-shortcode-examples">
+                            <h4><?php esc_html_e( 'Examples:', 'booking-master' ); ?></h4>
+                            <code>[booking_master_mentor_application redirect_url="/thank-you"]</code><br>
+                            <code>[booking_master_mentor_application auto_approve="true"]</code>
+                        </div>
+                    </div>
+                </div>
+                
+                <style>
+                .bm-shortcodes-section {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                    gap: 20px;
+                    margin-top: 20px;
+                }
+                
+                .bm-shortcode-card {
+                    background: #f9f9f9;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    padding: 20px;
+                }
+                
+                .bm-shortcode-card h3 {
+                    margin-top: 0;
+                    color: #333;
+                }
+                
+                .bm-shortcode-card code {
+                    background: #fff;
+                    padding: 8px 12px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    display: inline-block;
+                    margin: 5px 0;
+                    font-family: monospace;
+                    font-size: 13px;
+                }
+                
+                .bm-shortcode-options h4,
+                .bm-shortcode-examples h4 {
+                    margin: 15px 0 10px;
+                    color: #333;
+                }
+                
+                .bm-shortcode-options ul {
+                    margin: 0;
+                    padding-left: 20px;
+                }
+                
+                .bm-shortcode-options li {
+                    margin: 5px 0;
+                }
+                
+                .bm-shortcode-examples code {
+                    display: block;
+                    margin: 5px 0;
+                    background: #fff;
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                }
+                </style>
+                
             <?php elseif ( $current_tab === 'fees' ) : ?>
                 <h2><?php esc_html_e( 'Fees & Taxes', 'booking-master' ); ?></h2>
                 

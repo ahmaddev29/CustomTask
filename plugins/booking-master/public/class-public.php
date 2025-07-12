@@ -119,6 +119,8 @@ class Booking_Master_Public {
         add_action( 'wp_ajax_bm_submit_rating', array( $this, 'ajax_submit_rating' ) );
         add_action( 'wp_ajax_bm_get_session_details', array( $this, 'ajax_get_session_details' ) );
         add_action( 'wp_ajax_bm_search_services', array( $this, 'ajax_search_services' ) );
+        add_action( 'wp_ajax_bm_get_service_details', array( $this, 'ajax_get_service_details' ) );
+        add_action( 'wp_ajax_nopriv_bm_get_service_details', array( $this, 'ajax_get_service_details' ) );
         
         // Initialize booking modal
         add_action( 'wp_footer', array( $this, 'add_booking_modal' ) );
@@ -387,8 +389,397 @@ class Booking_Master_Public {
         }
         
         function bmOpenBookingModal(serviceId) {
-            // This function will be implemented when the booking modal is added
-            alert('Booking modal for service ' + serviceId + ' will open here');
+            // Initialize booking modal with service data
+            bmInitBookingModal(serviceId);
+            document.getElementById('bm-booking-modal').style.display = 'flex';
+            document.getElementById('bm-booking-modal').classList.add('show');
+        }
+        
+        function bmInitBookingModal(serviceId) {
+            // Reset modal state
+            window.bookingData = {
+                serviceId: serviceId,
+                selectedDate: null,
+                selectedTime: null,
+                currentStep: 1,
+                maxSteps: 5
+            };
+            
+            // Load service details
+            bmLoadServiceDetails(serviceId);
+            
+            // Show first step
+            bmShowBookingStep(1);
+        }
+        
+        function bmLoadServiceDetails(serviceId) {
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bm_get_service_details&service_id=${serviceId}&nonce=<?php echo wp_create_nonce( 'bm_public_nonce' ); ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bmUpdateServiceInfo(data.data);
+                } else {
+                    alert('Error loading service details');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading service details');
+            });
+        }
+        
+        function bmUpdateServiceInfo(service) {
+            document.getElementById('bm-summary-service').textContent = service.service_name;
+            document.getElementById('bm-breakdown-subtotal').textContent = '$' + parseFloat(service.price).toFixed(2);
+            document.getElementById('bm-summary-duration').textContent = service.duration + ' minutes';
+            
+            // Store service data
+            window.bookingData.service = service;
+        }
+        
+        function bmShowBookingStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.bm-booking-step').forEach(stepEl => {
+                stepEl.style.display = 'none';
+            });
+            
+            // Show current step
+            document.getElementById(`bm-step-${step}`).style.display = 'block';
+            
+            // Update step indicators
+            document.querySelectorAll('.bm-step').forEach((stepEl, index) => {
+                stepEl.classList.remove('active', 'completed');
+                if (index + 1 === step) {
+                    stepEl.classList.add('active');
+                } else if (index + 1 < step) {
+                    stepEl.classList.add('completed');
+                }
+            });
+            
+            // Update buttons
+            const prevBtn = document.getElementById('bm-booking-back');
+            const nextBtn = document.getElementById('bm-booking-next');
+            const finishBtn = document.getElementById('bm-booking-finish');
+            
+            prevBtn.style.display = step > 1 ? 'inline-block' : 'none';
+            
+            if (step === 5) {
+                nextBtn.style.display = 'none';
+                finishBtn.style.display = 'inline-block';
+            } else {
+                nextBtn.style.display = 'inline-block';
+                finishBtn.style.display = 'none';
+                nextBtn.querySelector('span').textContent = 'Continue';
+            }
+            
+            // Load step content
+            switch(step) {
+                case 1:
+                    bmLoadDateSelection();
+                    break;
+                case 2:
+                    bmLoadTimeSelection();
+                    break;
+                case 3:
+                    bmLoadMenteeInfo();
+                    break;
+                case 4:
+                    bmLoadPaymentStep();
+                    break;
+                case 5:
+                    bmShowSuccessStep();
+                    break;
+            }
+            
+            window.bookingData.currentStep = step;
+        }
+        
+        function bmLoadDateSelection() {
+            // Load available dates for the service
+            bmRenderBookingCalendar();
+        }
+        
+        function bmRenderBookingCalendar() {
+            const calendarContainer = document.getElementById('bm-booking-calendar');
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            
+            let calendarHTML = '<div class="bm-calendar-header">';
+            calendarHTML += '<button onclick="bmPrevMonth()" class="bm-calendar-nav">‹</button>';
+            calendarHTML += `<h4 id="bm-calendar-month">${bmGetMonthName(currentMonth)} ${currentYear}</h4>`;
+            calendarHTML += '<button onclick="bmNextMonth()" class="bm-calendar-nav">›</button>';
+            calendarHTML += '</div>';
+            
+            calendarHTML += '<div class="bm-calendar-grid">';
+            
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                calendarHTML += `<div class="bm-calendar-day header">${day}</div>`;
+            });
+            
+            // Add calendar days
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            // Empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                calendarHTML += '<div class="bm-calendar-day other-month"></div>';
+            }
+            
+            // Days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = date.toDateString() === today.toDateString();
+                const isPast = date < today.setHours(0,0,0,0);
+                
+                let classes = 'bm-calendar-day';
+                if (isToday) classes += ' today';
+                if (isPast) classes += ' disabled';
+                
+                calendarHTML += `<div class="${classes}" data-date="${dateStr}" onclick="bmSelectDate('${dateStr}')">${day}</div>`;
+            }
+            
+            calendarHTML += '</div>';
+            calendarContainer.innerHTML = calendarHTML;
+        }
+        
+        function bmSelectDate(dateStr) {
+            const dateObj = new Date(dateStr);
+            if (dateObj < new Date().setHours(0,0,0,0)) {
+                return;
+            }
+            
+            // Update selected date
+            document.querySelectorAll('.bm-calendar-day').forEach(day => {
+                day.classList.remove('selected');
+            });
+            
+            event.target.classList.add('selected');
+            window.bookingData.selectedDate = dateStr;
+            
+            // Enable next button
+            document.getElementById('bm-booking-next').disabled = false;
+        }
+        
+        function bmLoadTimeSelection() {
+            const timeContainer = document.getElementById('bm-time-slots');
+            const selectedDate = window.bookingData.selectedDate;
+            
+            if (!selectedDate) {
+                bmShowBookingStep(1);
+                return;
+            }
+            
+            // Load available time slots
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bm_get_service_availability&service_id=${window.bookingData.serviceId}&date=${selectedDate}&nonce=<?php echo wp_create_nonce( 'bm_public_nonce' ); ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bmRenderTimeSlots(data.data);
+                } else {
+                    timeContainer.innerHTML = '<p>No available time slots for this date.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                timeContainer.innerHTML = '<p>Error loading time slots.</p>';
+            });
+        }
+        
+        function bmRenderTimeSlots(slots) {
+            const timeContainer = document.getElementById('bm-time-slots');
+            let slotsHTML = '';
+            
+            slots.forEach(slot => {
+                slotsHTML += `<div class="bm-time-slot ${slot.available ? '' : 'disabled'}" 
+                                   data-time="${slot.time}" 
+                                   onclick="bmSelectTime('${slot.time}')">${slot.time}</div>`;
+            });
+            
+            timeContainer.innerHTML = slotsHTML;
+        }
+        
+        function bmSelectTime(time) {
+            if (event.target.classList.contains('disabled')) {
+                return;
+            }
+            
+            // Update selected time
+            document.querySelectorAll('.bm-time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            
+            event.target.classList.add('selected');
+            window.bookingData.selectedTime = time;
+            
+            // Enable next button
+            document.getElementById('bm-booking-next').disabled = false;
+        }
+        
+        function bmLoadMenteeInfo() {
+            // Pre-fill user information if available
+            const userInfo = <?php echo json_encode( wp_get_current_user() ); ?>;
+            if (userInfo.ID) {
+                document.getElementById('bm-first-name').value = userInfo.display_name.split(' ')[0] || '';
+                document.getElementById('bm-last-name').value = userInfo.display_name.split(' ')[1] || '';
+                document.getElementById('bm-email').value = userInfo.user_email || '';
+            }
+        }
+        
+        function bmValidateMenteeInfo() {
+            const firstName = document.getElementById('bm-first-name').value.trim();
+            const lastName = document.getElementById('bm-last-name').value.trim();
+            const email = document.getElementById('bm-email').value.trim();
+            const phone = document.getElementById('bm-phone').value.trim();
+            
+            if (!firstName || !lastName || !email) {
+                alert('Please fill in all required fields.');
+                return false;
+            }
+            
+            // Store mentee info
+            window.bookingData.menteeInfo = {
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                phone: phone
+            };
+            
+            return true;
+        }
+        
+        function bmLoadPaymentStep() {
+            const service = window.bookingData.service;
+            const settings = <?php echo json_encode( get_option( 'booking_master_settings', array() ) ); ?>;
+            
+            // Calculate pricing
+            const servicePrice = parseFloat(service.price);
+            const managementFee = settings.management_fee_enabled ? (servicePrice * (settings.management_fee_rate / 100)) : 0;
+            const taxRate = settings.tax_enabled ? (settings.tax_rate / 100) : 0;
+            const subtotal = servicePrice + managementFee;
+            const tax = subtotal * taxRate;
+            const total = subtotal + tax;
+            
+            // Update pricing display
+            document.getElementById('bm-service-fee').textContent = '$' + servicePrice.toFixed(2);
+            document.getElementById('bm-management-fee').textContent = '$' + managementFee.toFixed(2);
+            document.getElementById('bm-tax-amount').textContent = '$' + tax.toFixed(2);
+            document.getElementById('bm-total-amount').textContent = '$' + total.toFixed(2);
+            
+            // Store pricing
+            window.bookingData.pricing = {
+                servicePrice: servicePrice,
+                managementFee: managementFee,
+                tax: tax,
+                total: total
+            };
+            
+            // Initialize Stripe
+            bmInitializeStripe();
+        }
+        
+        function bmInitializeStripe() {
+            // Initialize Stripe (you'll need to add Stripe library)
+            // This is a placeholder - you'll need to implement actual Stripe integration
+            console.log('Stripe initialization would go here');
+        }
+        
+        function bmProcessPayment() {
+            const bookingData = window.bookingData;
+            
+            // Create booking
+            fetch('<?php echo admin_url( 'admin-ajax.php' ); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bm_create_booking&service_id=${bookingData.serviceId}&date=${bookingData.selectedDate}&time=${bookingData.selectedTime}&mentee_info=${JSON.stringify(bookingData.menteeInfo)}&pricing=${JSON.stringify(bookingData.pricing)}&nonce=<?php echo wp_create_nonce( 'bm_public_nonce' ); ?>`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.bookingData.bookingId = data.data.booking_id;
+                    bmShowBookingStep(5);
+                } else {
+                    alert('Error creating booking: ' + data.data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error processing payment');
+            });
+        }
+        
+        function bmShowSuccessStep() {
+            const bookingData = window.bookingData;
+            document.getElementById('bm-success-booking-id').textContent = bookingData.bookingId;
+            document.getElementById('bm-success-date').textContent = new Date(bookingData.selectedDate).toLocaleDateString();
+            document.getElementById('bm-success-time').textContent = bookingData.selectedTime;
+            document.getElementById('bm-success-total').textContent = '$' + bookingData.pricing.total.toFixed(2);
+        }
+        
+        function bmBookingNextStep() {
+            const currentStep = window.bookingData.currentStep;
+            
+            // Validate current step
+            if (currentStep === 1 && !window.bookingData.selectedDate) {
+                alert('Please select a date.');
+                return;
+            }
+            
+            if (currentStep === 2 && !window.bookingData.selectedTime) {
+                alert('Please select a time slot.');
+                return;
+            }
+            
+            if (currentStep === 3 && !bmValidateMenteeInfo()) {
+                return;
+            }
+            
+            if (currentStep === 4) {
+                bmProcessPayment();
+                return;
+            }
+            
+            if (currentStep === 5) {
+                bmCloseBookingModal();
+                return;
+            }
+            
+            bmShowBookingStep(currentStep + 1);
+        }
+        
+        function bmBookingPrevStep() {
+            const currentStep = window.bookingData.currentStep;
+            if (currentStep > 1) {
+                bmShowBookingStep(currentStep - 1);
+            }
+        }
+        
+        function bmCloseBookingModal() {
+            document.getElementById('bm-booking-modal').style.display = 'none';
+            document.getElementById('bm-booking-modal').classList.remove('show');
+        }
+        
+        function bmGetMonthName(month) {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'];
+            return months[month];
         }
         
         function bmShowLoginRequired() {
@@ -399,212 +790,6 @@ class Booking_Master_Public {
             alert('Service details for service ' + serviceId + ' will be shown here');
         }
         </script>
-        
-        <style>
-        .bm-services-search {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-        
-        .bm-search-row {
-            margin-bottom: 15px;
-        }
-        
-        .bm-search-input {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .bm-search-input input {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        
-        .bm-search-button {
-            background: #0073aa;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-        
-        .bm-search-button:hover {
-            background: #005a87;
-        }
-        
-        .bm-filters-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 15px;
-            align-items: center;
-        }
-        
-        .bm-filters-row select,
-        .bm-filters-row input {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        
-        .bm-services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-        }
-        
-        .bm-service-card {
-            background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            border: 1px solid #e9ecef;
-        }
-        
-        .bm-service-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        }
-        
-        .bm-service-badge {
-            background: #28a745;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-bottom: 10px;
-            display: inline-block;
-        }
-        
-        .bm-service-title {
-            margin: 0 0 8px;
-            color: #333;
-            font-size: 18px;
-        }
-        
-        .bm-service-mentor {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-        
-        .bm-mentor-name {
-            font-weight: 600;
-            color: #0073aa;
-        }
-        
-        .bm-service-description {
-            color: #666;
-            line-height: 1.5;
-            margin-bottom: 15px;
-        }
-        
-        .bm-service-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .bm-price-amount {
-            font-size: 20px;
-            font-weight: 600;
-            color: #28a745;
-        }
-        
-        .bm-price-label {
-            font-size: 12px;
-            color: #666;
-            display: block;
-        }
-        
-        .bm-service-duration {
-            color: #666;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .bm-service-footer {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .bm-book-button {
-            background: #0073aa;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        
-        .bm-book-button:hover {
-            background: #005a87;
-        }
-        
-        .bm-view-details-button {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .bm-view-details-button:hover {
-            background: #5a6268;
-        }
-        
-        .bm-no-services {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
-        
-        .bm-no-services h3 {
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        @media (max-width: 768px) {
-            .bm-filters-row {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
-            .bm-search-input {
-                flex-direction: column;
-            }
-            
-            .bm-services-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .bm-service-footer {
-                flex-direction: column;
-            }
-        }
-        </style>
         <?php
         return ob_get_clean();
     }
@@ -1982,506 +2167,11 @@ class Booking_Master_Public {
             });
         }
         </script>
-        
-        <style>
-        .bm-mentor-dashboard {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .bm-dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        
-        .bm-dashboard-title h3 {
-            margin: 0;
-            font-size: 28px;
-            color: #333;
-        }
-        
-        .bm-dashboard-title p {
-            margin: 5px 0 0;
-            color: #666;
-        }
-        
-        .bm-dashboard-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .bm-stat-card {
-            background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .bm-stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: #0073aa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 20px;
-        }
-        
-        .bm-stat-content h4 {
-            margin: 0;
-            font-size: 24px;
-            color: #333;
-        }
-        
-        .bm-stat-content p {
-            margin: 5px 0 0;
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .bm-dashboard-nav {
-            display: flex;
-            gap: 2px;
-            margin-bottom: 30px;
-            background: #f5f5f5;
-            padding: 4px;
-            border-radius: 8px;
-        }
-        
-        .bm-nav-tab {
-            background: transparent;
-            border: none;
-            padding: 12px 20px;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            color: #666;
-        }
-        
-        .bm-nav-tab:hover {
-            background: #e0e0e0;
-        }
-        
-        .bm-nav-tab.active {
-            background: #0073aa;
-            color: white;
-        }
-        
-        .bm-dashboard-tab {
-            display: none;
-        }
-        
-        .bm-dashboard-tab.active {
-            display: block;
-        }
-        
-        .bm-dashboard-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 30px;
-        }
-        
-        .bm-dashboard-section {
-            background: #fff;
-            border-radius: 8px;
-            padding: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .bm-dashboard-section h4 {
-            margin: 0 0 20px;
-            color: #333;
-        }
-        
-        .bm-bookings-table table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .bm-bookings-table th,
-        .bm-bookings-table td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .bm-bookings-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .bm-status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-        }
-        
-        .bm-status.pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .bm-status.confirmed {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .bm-status.completed {
-            background: #cce5ff;
-            color: #004085;
-        }
-        
-        .bm-status.cancelled {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .bm-action-buttons {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .bm-quick-actions {
-            display: grid;
-            gap: 15px;
-        }
-        
-        .bm-action-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 15px;
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .bm-action-item:hover {
-            background: #e9ecef;
-            border-color: #0073aa;
-        }
-        
-        .bm-section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-        
-        .bm-services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .bm-service-card {
-            background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid #e9ecef;
-        }
-        
-        .bm-service-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .bm-service-header h5 {
-            margin: 0;
-            color: #333;
-        }
-        
-        .bm-service-description {
-            color: #666;
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-        
-        .bm-service-meta {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-        
-        .bm-price {
-            font-size: 18px;
-            font-weight: 600;
-            color: #0073aa;
-        }
-        
-        .bm-duration {
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .bm-service-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .bm-empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
-        
-        .bm-empty-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            color: #ddd;
-        }
-        
-        .bm-empty-state h5 {
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        .bm-filters {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .bm-button {
-            background: #0073aa;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .bm-button:hover {
-            background: #005a87;
-        }
-        
-        .bm-button-secondary {
-            background: #6c757d;
-        }
-        
-        .bm-button-secondary:hover {
-            background: #5a6268;
-        }
-        
-        .bm-button-success {
-            background: #28a745;
-        }
-        
-        .bm-button-success:hover {
-            background: #218838;
-        }
-        
-        .bm-button-danger {
-            background: #dc3545;
-        }
-        
-        .bm-button-danger:hover {
-            background: #c82333;
-        }
-        
-        .bm-button-small {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-        
-        .bm-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        
-        .bm-modal-content {
-            background: white;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        
-        .bm-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .bm-modal-header h3 {
-            margin: 0;
-        }
-        
-        .bm-modal-close {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #666;
-            padding: 5px;
-        }
-        
-        .bm-modal-body {
-            padding: 20px;
-        }
-        
-        .bm-modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            padding: 20px;
-            border-top: 1px solid #e9ecef;
-        }
-        
-        .bm-form-group {
-            margin-bottom: 20px;
-        }
-        
-        .bm-form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .bm-form-group input,
-        .bm-form-group select,
-        .bm-form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        .bm-form-group textarea {
-            resize: vertical;
-        }
-        
-                 .bm-form-row {
-             display: grid;
-             grid-template-columns: 1fr 1fr;
-             gap: 15px;
-         }
-         
-         .bm-input-with-symbol {
-             position: relative;
-         }
-         
-         .bm-currency-symbol {
-             position: absolute;
-             left: 10px;
-             top: 50%;
-             transform: translateY(-50%);
-             color: #666;
-         }
-         
-         .bm-input-with-symbol input {
-             padding-left: 30px;
-         }
-         
-         /* Availability Management Styles */
-         .bm-availability-interface {
-             display: grid;
-             grid-template-columns: 1fr 1fr;
-             gap: 30px;
-             background: #fff;
-             border-radius: 8px;
-             padding: 25px;
-             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-         }
-         
-         .bm-calendar-header {
-             display: flex;
-             justify-content: space-between;
-             align-items: center;
-             margin-bottom: 20px;
-         }
-         
-         .bm-calendar-header h4 {
-             margin: 0;
-             color: #333;
-         }
-         
-         .bm-calendar-grid {
-             background: #fff;
-             border-radius: 6px;
-             overflow: hidden;
-             border: 1px solid #e9ecef;
-         }
-         
-         .bm-calendar-header-days {
-             display: grid;
-             grid-template-columns: repeat(7, 1fr);
-             background: #f8f9fa;
-         }
-         
-         .bm-calendar-day-name {
-             padding: 10px;
-             text-align: center;
-             font-weight: 600;
-             color: #666;
-             border-right: 1px solid #e9ecef;
-             font-size: 12px;
-         }
-         
-         .bm-calendar-day-name:last-child {
-             border-right: none;
-         }
-         
-         .bm-calendar-days {
-             display: grid;
-             grid-template-columns: repeat(7, 1fr);
-         }
-         
-         .bm-calendar-day {
-             padding: 12px;
-             text-align: center;
-             cursor: pointer;
-             border-right: 1px solid #e9ecef;
-             border-bottom: 1px solid #e9ecef;
-             transition: all 0.3s ease;
-             min-height: 40px;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-         }
-         
-         .bm-calendar-day:last-child {
-             border-right: none;
-         }
-         
-         .bm-calendar-day:hover:not(.empty):not(.past) {
-             background: #f0f8ff;
-         }
+        <?php
+        // Removed duplicate CSS - now using public.css
+        ?>
+        
+        </style>
          
          .bm-calendar-day.today {
              background: #0073aa;
@@ -4306,5 +3996,34 @@ class Booking_Master_Public {
         $services = $wpdb->get_results( $wpdb->prepare( $query, $params ) );
 
         wp_send_json_success( $services );
+    }
+
+    /**
+     * Get service details (AJAX handler)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_get_service_details() {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'bm_public_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        global $wpdb;
+        $services_table = $wpdb->prefix . 'bm_services';
+        $service_id = intval( $_POST['service_id'] );
+
+        $service = $wpdb->get_row( $wpdb->prepare(
+            "SELECT s.*, u.display_name as mentor_name, u.user_email as mentor_email
+             FROM $services_table s
+             LEFT JOIN {$wpdb->users} u ON s.mentor_id = u.ID
+             WHERE s.id = %d AND s.status = 'active'",
+            $service_id
+        ) );
+
+        if ( $service ) {
+            wp_send_json_success( $service );
+        } else {
+            wp_send_json_error( array( 'message' => 'Service not found' ) );
+        }
     }
 }
