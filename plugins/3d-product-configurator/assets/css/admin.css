@@ -1,0 +1,498 @@
+/**
+ * 3D Product Configurator Admin Styles
+ */
+
+/* Admin Meta Box Styles */
+.tpc-admin-settings {
+    margin: 0;
+    padding: 0;
+}
+
+.tpc-admin-settings .form-table {
+    margin-top: 0;
+}
+
+.tpc-admin-settings .form-table th {
+    width: 200px;
+    padding: 15px 10px 15px 0;
+    vertical-align: top;
+}
+
+.tpc-admin-settings .form-table td {
+    padding: 15px 10px;
+    vertical-align: top;
+}
+
+/* Code examples in descriptions */
+.tpc-admin-settings code {
+    background: #f1f1f1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 12px;
+    display: block;
+    white-space: pre-wrap;
+    margin-top: 8px;
+    padding: 12px;
+    border-left: 4px solid #0073aa;
+    overflow-x: auto;
+}
+
+/* Textarea styling */
+.tpc-admin-settings textarea.large-text {
+    width: 100%;
+    min-height: 120px;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.tpc-admin-settings textarea.large-text:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+    outline: none;
+}
+
+/* Upload button styling */
+.tpc-admin-settings .button {
+    margin-left: 8px;
+    vertical-align: top;
+}
+
+/* Preview container */
+.tpc-preview-container {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.tpc-preview-container h3 {
+    margin: 0 0 15px 0;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+#tpc-admin-preview {
+    background: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+}
+
+#tpc-admin-preview canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Loading state for preview */
+.tpc-preview-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #666;
+}
+
+.tpc-preview-loading .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #0073aa;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error states */
+.tpc-admin-error {
+    background: #fff2f2;
+    border-left: 4px solid #dc3232;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.tpc-admin-error p {
+    margin: 0;
+    color: #dc3232;
+    font-weight: 500;
+}
+
+/* Success states */
+.tpc-admin-success {
+    background: #f0f9ff;
+    border-left: 4px solid #00a32a;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.tpc-admin-success p {
+    margin: 0;
+    color: #00a32a;
+    font-weight: 500;
+}
+
+/* Checkbox styling */
+.tpc-admin-settings input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* URL input styling */
+.tpc-admin-settings input[type="url"] {
+    width: 400px;
+    max-width: 100%;
+}
+
+/* Help text styling */
+.tpc-admin-settings .description {
+    color: #666;
+    font-style: italic;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+/* Validation styling */
+.tpc-admin-settings .invalid {
+    border-color: #dc3232 !important;
+    box-shadow: 0 0 0 1px #dc3232 !important;
+}
+
+.tpc-admin-settings .valid {
+    border-color: #00a32a !important;
+    box-shadow: 0 0 0 1px #00a32a !important;
+}
+
+/* Settings sections */
+.tpc-settings-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.tpc-settings-section-header {
+    background: #f7f7f7;
+    border-bottom: 1px solid #ccd0d4;
+    padding: 12px 20px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.tpc-settings-section-content {
+    padding: 20px;
+}
+
+/* Tabs styling */
+.tpc-admin-tabs {
+    border-bottom: 1px solid #ccd0d4;
+    margin: 0 0 20px 0;
+    padding: 0;
+}
+
+.tpc-admin-tabs li {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px solid transparent;
+}
+
+.tpc-admin-tabs li a {
+    display: block;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: #555;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.tpc-admin-tabs li a:hover,
+.tpc-admin-tabs li a:focus {
+    color: #0073aa;
+    border-bottom-color: #0073aa;
+}
+
+.tpc-admin-tabs li.active a {
+    color: #0073aa;
+    border-bottom-color: #0073aa;
+    font-weight: 600;
+}
+
+/* Tab content */
+.tpc-tab-content {
+    display: none;
+}
+
+.tpc-tab-content.active {
+    display: block;
+}
+
+/* Model upload area */
+.tpc-model-upload-area {
+    border: 2px dashed #ccd0d4;
+    border-radius: 6px;
+    padding: 40px 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+.tpc-model-upload-area:hover {
+    border-color: #0073aa;
+    background: #f7f9fc;
+}
+
+.tpc-model-upload-area.dragover {
+    border-color: #0073aa;
+    background: #e3f2fd;
+}
+
+.tpc-model-upload-area .upload-icon {
+    font-size: 48px;
+    color: #ccd0d4;
+    margin-bottom: 16px;
+}
+
+.tpc-model-upload-area:hover .upload-icon {
+    color: #0073aa;
+}
+
+.tpc-model-upload-area h4 {
+    margin: 0 0 8px 0;
+    color: #23282d;
+    font-size: 16px;
+}
+
+.tpc-model-upload-area p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+/* Progress bar */
+.tpc-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.tpc-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0073aa, #005a87);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+/* Model preview controls */
+.tpc-preview-controls {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.tpc-preview-controls .button {
+    margin: 0 5px;
+}
+
+/* Responsive design */
+@media (max-width: 782px) {
+    .tpc-admin-settings input[type="url"] {
+        width: 100%;
+    }
+    
+    .tpc-admin-settings .form-table th,
+    .tpc-admin-settings .form-table td {
+        display: block;
+        width: 100%;
+        padding: 10px 0;
+    }
+    
+    .tpc-admin-settings .form-table th {
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+    }
+    
+    .tpc-preview-container {
+        padding: 15px;
+    }
+    
+    #tpc-admin-preview {
+        height: 300px;
+    }
+}
+
+/* Tooltip styles */
+.tpc-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.tpc-tooltip:before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.tpc-tooltip:after {
+    content: '';
+    position: absolute;
+    bottom: 115%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #333;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.tpc-tooltip:hover:before,
+.tpc-tooltip:hover:after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Notice styles */
+.tpc-admin-notice {
+    margin: 15px 0;
+    padding: 12px;
+    border-left: 4px solid #0073aa;
+    background: #fff;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.tpc-admin-notice.notice-error {
+    border-left-color: #dc3232;
+}
+
+.tpc-admin-notice.notice-warning {
+    border-left-color: #ffb900;
+}
+
+.tpc-admin-notice.notice-success {
+    border-left-color: #00a32a;
+}
+
+.tpc-admin-notice p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* JSON editor enhancements */
+.tpc-json-editor {
+    position: relative;
+}
+
+.tpc-json-editor .json-error {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #dc3232;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.tpc-json-editor .json-valid {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #00a32a;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Button groups */
+.tpc-button-group {
+    display: inline-flex;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.1);
+}
+
+.tpc-button-group .button {
+    margin: 0;
+    border-radius: 0;
+    border-right: 0;
+}
+
+.tpc-button-group .button:last-child {
+    border-right: 1px solid #ccd0d4;
+}
+
+.tpc-button-group .button.active {
+    background: #0073aa;
+    color: white;
+    border-color: #0073aa;
+}
+
+/* Model info display */
+.tpc-model-info {
+    background: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.tpc-model-info h4 {
+    margin: 0 0 10px 0;
+    color: #23282d;
+    font-size: 14px;
+}
+
+.tpc-model-info dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+}
+
+.tpc-model-info dt {
+    font-weight: 600;
+    color: #666;
+}
+
+.tpc-model-info dd {
+    margin: 0;
+    color: #333;
+}

@@ -1,0 +1,401 @@
+{
+  "sample_materials": {
+    "description": "Example materials configuration for a t-shirt product",
+    "data": {
+      "fabric": {
+        "name": "Fabric",
+        "options": [
+          {
+            "id": "cotton-white",
+            "name": "Cotton White",
+            "color": "#ffffff",
+            "texture": "https://example.com/textures/cotton-white.jpg"
+          },
+          {
+            "id": "cotton-black",
+            "name": "Cotton Black", 
+            "color": "#000000",
+            "texture": "https://example.com/textures/cotton-black.jpg"
+          },
+          {
+            "id": "denim-blue",
+            "name": "Denim Blue",
+            "color": "#4169e1",
+            "texture": "https://example.com/textures/denim.jpg"
+          },
+          {
+            "id": "cotton-red",
+            "name": "Cotton Red",
+            "color": "#dc143c",
+            "texture": "https://example.com/textures/cotton-red.jpg"
+          },
+          {
+            "id": "cotton-navy",
+            "name": "Cotton Navy",
+            "color": "#000080",
+            "texture": "https://example.com/textures/cotton-navy.jpg"
+          }
+        ]
+      },
+      "trim": {
+        "name": "Collar & Cuffs",
+        "options": [
+          {
+            "id": "trim-white",
+            "name": "White Trim",
+            "color": "#ffffff"
+          },
+          {
+            "id": "trim-black",
+            "name": "Black Trim",
+            "color": "#000000"
+          },
+          {
+            "id": "trim-gray",
+            "name": "Gray Trim",
+            "color": "#808080"
+          }
+        ]
+      }
+    }
+  },
+  
+  "sample_logo_positions": {
+    "description": "Example logo positions for a t-shirt product",
+    "data": [
+      {
+        "id": "chest-center",
+        "name": "Chest Center",
+        "position": [0, 0.2, 0.51],
+        "rotation": [0, 0, 0],
+        "scale": [0.25, 0.25, 0.25]
+      },
+      {
+        "id": "chest-left",
+        "name": "Chest Left",
+        "position": [-0.15, 0.3, 0.51],
+        "rotation": [0, 0, 0],
+        "scale": [0.12, 0.12, 0.12]
+      },
+      {
+        "id": "back-center",
+        "name": "Back Center",
+        "position": [0, 0.1, -0.51],
+        "rotation": [0, 3.14159, 0],
+        "scale": [0.3, 0.3, 0.3]
+      },
+      {
+        "id": "left-sleeve",
+        "name": "Left Sleeve",
+        "position": [-0.35, 0.15, 0.25],
+        "rotation": [0, 0.5, 0],
+        "scale": [0.08, 0.08, 0.08]
+      },
+      {
+        "id": "right-sleeve",
+        "name": "Right Sleeve", 
+        "position": [0.35, 0.15, 0.25],
+        "rotation": [0, -0.5, 0],
+        "scale": [0.08, 0.08, 0.08]
+      }
+    ]
+  },
+
+  "advanced_materials_example": {
+    "description": "Advanced materials with PBR properties for jewelry/accessories",
+    "data": {
+      "metal": {
+        "name": "Metal Finish",
+        "options": [
+          {
+            "id": "silver",
+            "name": "Sterling Silver",
+            "color": "#c0c0c0",
+            "metalness": 0.9,
+            "roughness": 0.1,
+            "texture": "https://example.com/textures/silver-brushed.jpg"
+          },
+          {
+            "id": "gold",
+            "name": "18K Gold",
+            "color": "#ffd700",
+            "metalness": 0.95,
+            "roughness": 0.05,
+            "texture": "https://example.com/textures/gold-polished.jpg"
+          },
+          {
+            "id": "rose-gold",
+            "name": "Rose Gold",
+            "color": "#e8b4a0",
+            "metalness": 0.9,
+            "roughness": 0.1,
+            "texture": "https://example.com/textures/rose-gold.jpg"
+          },
+          {
+            "id": "black-steel",
+            "name": "Black Steel",
+            "color": "#2c2c2c",
+            "metalness": 0.8,
+            "roughness": 0.2,
+            "texture": "https://example.com/textures/black-steel.jpg"
+          }
+        ]
+      },
+      "gemstone": {
+        "name": "Gemstone",
+        "options": [
+          {
+            "id": "diamond",
+            "name": "Diamond",
+            "color": "#ffffff",
+            "metalness": 0,
+            "roughness": 0,
+            "transmission": 0.9,
+            "ior": 2.417
+          },
+          {
+            "id": "ruby",
+            "name": "Ruby",
+            "color": "#e0115f",
+            "metalness": 0,
+            "roughness": 0.1,
+            "transmission": 0.7,
+            "ior": 1.76
+          },
+          {
+            "id": "emerald",
+            "name": "Emerald",
+            "color": "#50c878",
+            "metalness": 0,
+            "roughness": 0.15,
+            "transmission": 0.6,
+            "ior": 1.57
+          },
+          {
+            "id": "sapphire",
+            "name": "Sapphire",
+            "color": "#0f52ba",
+            "metalness": 0,
+            "roughness": 0.1,
+            "transmission": 0.8,
+            "ior": 1.77
+          }
+        ]
+      }
+    }
+  },
+
+  "shoe_materials_example": {
+    "description": "Materials configuration for footwear products",
+    "data": {
+      "upper": {
+        "name": "Upper Material",
+        "options": [
+          {
+            "id": "leather-black",
+            "name": "Black Leather",
+            "color": "#1a1a1a",
+            "texture": "https://example.com/textures/leather-black.jpg",
+            "normalMap": "https://example.com/textures/leather-normal.jpg",
+            "roughness": 0.6
+          },
+          {
+            "id": "leather-brown",
+            "name": "Brown Leather",
+            "color": "#8b4513",
+            "texture": "https://example.com/textures/leather-brown.jpg",
+            "normalMap": "https://example.com/textures/leather-normal.jpg",
+            "roughness": 0.6
+          },
+          {
+            "id": "canvas-white",
+            "name": "White Canvas",
+            "color": "#f8f8f8",
+            "texture": "https://example.com/textures/canvas-white.jpg",
+            "roughness": 0.8
+          },
+          {
+            "id": "suede-gray",
+            "name": "Gray Suede",
+            "color": "#708090",
+            "texture": "https://example.com/textures/suede-gray.jpg",
+            "roughness": 0.9
+          }
+        ]
+      },
+      "sole": {
+        "name": "Sole",
+        "options": [
+          {
+            "id": "rubber-white",
+            "name": "White Rubber",
+            "color": "#ffffff",
+            "roughness": 0.7
+          },
+          {
+            "id": "rubber-black",
+            "name": "Black Rubber",
+            "color": "#000000",
+            "roughness": 0.7
+          },
+          {
+            "id": "gum-brown",
+            "name": "Gum Brown",
+            "color": "#deb887",
+            "roughness": 0.8
+          }
+        ]
+      },
+      "laces": {
+        "name": "Laces",
+        "options": [
+          {
+            "id": "laces-white",
+            "name": "White Laces",
+            "color": "#ffffff"
+          },
+          {
+            "id": "laces-black",
+            "name": "Black Laces",
+            "color": "#000000"
+          },
+          {
+            "id": "laces-red",
+            "name": "Red Laces",
+            "color": "#ff0000"
+          },
+          {
+            "id": "laces-blue",
+            "name": "Blue Laces",
+            "color": "#0000ff"
+          }
+        ]
+      }
+    }
+  },
+
+  "bag_logo_positions": {
+    "description": "Logo positions for a handbag/backpack product",
+    "data": [
+      {
+        "id": "front-center",
+        "name": "Front Center",
+        "position": [0, 0, 0.4],
+        "rotation": [0, 0, 0],
+        "scale": [0.2, 0.2, 0.2]
+      },
+      {
+        "id": "front-bottom",
+        "name": "Front Bottom",
+        "position": [0, -0.3, 0.4],
+        "rotation": [0, 0, 0],
+        "scale": [0.15, 0.15, 0.15]
+      },
+      {
+        "id": "side-left",
+        "name": "Left Side",
+        "position": [-0.4, 0, 0],
+        "rotation": [0, 1.5708, 0],
+        "scale": [0.18, 0.18, 0.18]
+      },
+      {
+        "id": "side-right", 
+        "name": "Right Side",
+        "position": [0.4, 0, 0],
+        "rotation": [0, -1.5708, 0],
+        "scale": [0.18, 0.18, 0.18]
+      },
+      {
+        "id": "top-flap",
+        "name": "Top Flap",
+        "position": [0, 0.35, 0.2],
+        "rotation": [-0.3, 0, 0],
+        "scale": [0.12, 0.12, 0.12]
+      }
+    ]
+  },
+
+  "cap_logo_positions": {
+    "description": "Logo positions for a baseball cap product",
+    "data": [
+      {
+        "id": "front-center",
+        "name": "Front Center",
+        "position": [0, 0.05, 0.12],
+        "rotation": [0, 0, 0],
+        "scale": [0.15, 0.15, 0.15]
+      },
+      {
+        "id": "side-left",
+        "name": "Left Side",
+        "position": [-0.1, 0, 0.08],
+        "rotation": [0, 1.2, 0],
+        "scale": [0.1, 0.1, 0.1]
+      },
+      {
+        "id": "side-right",
+        "name": "Right Side", 
+        "position": [0.1, 0, 0.08],
+        "rotation": [0, -1.2, 0],
+        "scale": [0.1, 0.1, 0.1]
+      },
+      {
+        "id": "back-center",
+        "name": "Back Center",
+        "position": [0, 0, -0.12],
+        "rotation": [0, 3.14159, 0],
+        "scale": [0.12, 0.12, 0.12]
+      },
+      {
+        "id": "visor-top",
+        "name": "Visor Top",
+        "position": [0, -0.05, 0.18],
+        "rotation": [-0.4, 0, 0],
+        "scale": [0.08, 0.08, 0.08]
+      }
+    ]
+  },
+
+  "usage_instructions": {
+    "materials": {
+      "step1": "Copy the materials JSON from the 'data' field above",
+      "step2": "Paste into the 'Available Materials' textarea in your product settings", 
+      "step3": "Ensure your 3D model materials are named to match the keys (e.g., 'fabric', 'metal')",
+      "step4": "Update texture URLs to point to your actual texture files",
+      "step5": "Save the product to apply changes"
+    },
+    "logo_positions": {
+      "step1": "Copy the logo positions JSON from the 'data' field above",
+      "step2": "Paste into the 'Logo Positions' textarea in your product settings",
+      "step3": "Adjust position coordinates based on your 3D model's scale and orientation",
+      "step4": "Test positions by uploading a logo in the frontend configurator",
+      "step5": "Fine-tune coordinates as needed"
+    },
+    "coordinate_system": {
+      "position": "[x, y, z] where x=left/right, y=up/down, z=forward/back",
+      "rotation": "[x, y, z] in radians where Math.PI = 180 degrees",
+      "scale": "[x, y, z] where 1.0 = original size, 0.5 = half size, 2.0 = double size"
+    }
+  },
+
+  "tips": {
+    "performance": [
+      "Keep texture files under 2MB each for best performance",
+      "Use power-of-2 dimensions for textures (512x512, 1024x1024)",
+      "Compress textures using tools like TinyPNG or Squoosh",
+      "Test on mobile devices to ensure smooth performance"
+    ],
+    "materials": [
+      "Use descriptive material names that match your 3D model",
+      "PBR materials work best (metalness + roughness workflow)",
+      "Include normal maps for enhanced surface detail",
+      "Test materials in different lighting conditions"
+    ],
+    "logos": [
+      "Use high-contrast logos for best visibility",
+      "PNG format with transparency works best",
+      "Keep logo files under 1MB",
+      "Test logo positions on different materials/colors"
+    ]
+  }
+}
